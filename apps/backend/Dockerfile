@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
-RUN pnpm install --filter @travel-agency/backend --frozen-lockfile
+RUN pnpm install --filter @travel-agency/backend
 
 COPY apps/backend ./apps/backend
 
@@ -24,7 +24,7 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 
-RUN pnpm install --filter @travel-agency/backend --frozen-lockfile --prod
+RUN pnpm install --filter @travel-agency/backend --prod
 
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/node_modules/.prisma ./apps/backend/node_modules/.prisma
