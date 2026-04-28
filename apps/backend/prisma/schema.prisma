@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1: Foundation | FASE 2: CRM | FASE 3: Sales
+// FASE 1: Foundation | FASE 2: CRM | FASE 3: Sales | FASE 4: Travel Cases
 // =============================================================================
 
 generator client {
@@ -171,6 +171,7 @@ model Tenant {
   opportunities   Opportunity[]
   quotations      Quotation[]
   proposals       Proposal[]
+  travelCases     TravelCase[]
 
   @@map("tenants")
 }
@@ -207,8 +208,10 @@ model User {
   assignedClients      Client[]        @relation("ClientAssignedTo")
   assignedLeads        Lead[]          @relation("LeadAssignedTo")
   customerNotes        CustomerNote[]
-  assignedOpportunities Opportunity[]  @relation("OpportunityAssignedTo")
-  assignedQuotations   Quotation[]     @relation("QuotationAssignedTo")
+  assignedOpportunities Opportunity[]   @relation("OpportunityAssignedTo")
+  assignedQuotations   Quotation[]      @relation("QuotationAssignedTo")
+  assignedCases        TravelCase[]     @relation("CaseAssignedTo")
+  caseNotes            CaseNote[]       @relation("CaseNoteAuthor")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -380,6 +383,7 @@ model Client {
   leads                  Lead[]
   opportunities          Opportunity[]
   quotations             Quotation[]
+  travelCases            TravelCase[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -440,6 +444,7 @@ model Lead {
   tags           LeadTag[]
   opportunities  Opportunity[]
   quotations     Quotation[]
+  travelCases    TravelCase[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -750,6 +755,7 @@ model Quotation {
 
   items           QuotationItem[]
   proposal        Proposal?
+  travelCase      TravelCase?
 
   @@unique([tenantId, number])
   @@index([tenantId])
@@ -830,4 +836,266 @@ model SequenceCounter {
 
   @@unique([tenantId, type, year])
   @@map("sequence_counters")
+}
+
+// =============================================================================
+// ENUMS — FASE 4 TRAVEL CASES
+// =============================================================================
+
+enum CaseStatus {
+  INQUIRY
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum CaseServiceStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  ON_REQUEST
+}
+
+enum CaseServiceType {
+  FLIGHT
+  HOTEL
+  PACKAGE
+  CRUISE
+  TRAIN
+  FERRY
+  CAR_RENTAL
+  TRANSFER
+  EXCURSION
+  INSURANCE
+  VISA
+  TICKET
+  OTHER
+}
+
+// =============================================================================
+// FASE 4: TRAVEL CASES (Pratiche)
+// =============================================================================
+
+model TravelCase {
+  id              String     @id @default(uuid())
+  tenantId        String
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  number          String
+  title           String
+  status          CaseStatus @default(INQUIRY)
+  description     String?
+
+  // Links
+  clientId        String?
+  client          Client?    @relation(fields: [clientId], references: [id])
+  leadId          String?
+  lead            Lead?      @relation(fields: [leadId], references: [id])
+  quotationId     String?    @unique
+  quotation       Quotation? @relation(fields: [quotationId], references: [id])
+
+  // Travel details
+  destination     String?
+  departureDate   DateTime?
+  returnDate      DateTime?
+  numberOfPeople  Int?
+  travelType      String?
+
+  // Financial
+  currency        String     @default("EUR")
+  totalAmount     Decimal    @default(0) @db.Decimal(12, 2)
+  totalCost       Decimal    @default(0) @db.Decimal(12, 2)
+  totalPaid       Decimal    @default(0) @db.Decimal(12, 2)
+  balance         Decimal    @default(0) @db.Decimal(12, 2)
+
+  // Internal
+  assignedToId    String?
+  assignedTo      User?      @relation("CaseAssignedTo", fields: [assignedToId], references: [id])
+  internalNotes   String?
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  passengers      Passenger[]
+  itinerary       CaseItinerary[]
+  services        CaseService[]
+  checklists      CaseChecklist[]
+  statusHistory   CaseStatusHistory[]
+  notes           CaseNote[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, clientId])
+  @@map("travel_cases")
+}
+
+// =============================================================================
+// FASE 4: PASSENGERS
+// =============================================================================
+
+model Passenger {
+  id               String     @id @default(uuid())
+  tenantId         String
+  caseId           String
+  case             TravelCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  contactId        String?
+
+  firstName        String
+  lastName         String
+  birthDate        DateTime?
+  nationality      String?    @default("IT")
+  taxCode          String?
+
+  // Document
+  passportNumber   String?
+  passportExpiry   DateTime?
+  passportIssuedBy String?
+
+  // Contact
+  email            String?
+  phone            String?
+
+  // Preferences
+  isLeader         Boolean    @default(false)
+  mealPreference   String?
+  seatPreference   String?
+  specialNeeds     String?
+  notes            String?
+
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([caseId])
+  @@index([tenantId])
+  @@map("passengers")
+}
+
+// =============================================================================
+// FASE 4: ITINERARY
+// =============================================================================
+
+model CaseItinerary {
+  id            String     @id @default(uuid())
+  tenantId      String
+  caseId        String
+  case          TravelCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  dayNumber     Int
+  date          DateTime?
+  title         String
+  description   String?
+  location      String?
+  accommodation String?
+  breakfast     Boolean    @default(false)
+  lunch         Boolean    @default(false)
+  dinner        Boolean    @default(false)
+  notes         String?
+
+  @@index([caseId])
+  @@index([tenantId])
+  @@map("case_itinerary")
+}
+
+// =============================================================================
+// FASE 4: CASE SERVICES (booked services)
+// =============================================================================
+
+model CaseService {
+  id              String            @id @default(uuid())
+  tenantId        String
+  caseId          String
+  case            TravelCase        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  type            CaseServiceType   @default(OTHER)
+  description     String
+  provider        String?
+  providerRef     String?
+  status          CaseServiceStatus @default(PENDING)
+
+  serviceDate     DateTime?
+  serviceEndDate  DateTime?
+  amount          Decimal           @default(0) @db.Decimal(10, 2)
+  cost            Decimal           @default(0) @db.Decimal(10, 2)
+  currency        String            @default("EUR")
+
+  numberOfPax     Int?
+  notes           String?
+  confirmationDoc String?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([caseId])
+  @@index([tenantId])
+  @@map("case_services")
+}
+
+// =============================================================================
+// FASE 4: CHECKLISTS
+// =============================================================================
+
+model CaseChecklist {
+  id            String     @id @default(uuid())
+  tenantId      String
+  caseId        String
+  case          TravelCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  item          String
+  isCompleted   Boolean    @default(false)
+  completedAt   DateTime?
+  completedById String?
+  dueDate       DateTime?
+  assignedToId  String?
+  notes         String?
+
+  createdAt     DateTime   @default(now())
+
+  @@index([caseId])
+  @@map("case_checklists")
+}
+
+// =============================================================================
+// FASE 4: STATUS HISTORY
+// =============================================================================
+
+model CaseStatusHistory {
+  id          String     @id @default(uuid())
+  tenantId    String
+  caseId      String
+  case        TravelCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  fromStatus  CaseStatus?
+  toStatus    CaseStatus
+  notes       String?
+  changedById String?
+  changedAt   DateTime   @default(now())
+
+  @@index([caseId])
+  @@map("case_status_history")
+}
+
+// =============================================================================
+// FASE 4: CASE NOTES
+// =============================================================================
+
+model CaseNote {
+  id        String     @id @default(uuid())
+  tenantId  String
+  caseId    String
+  case      TravelCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?      @relation("CaseNoteAuthor", fields: [authorId], references: [id])
+  type      NoteType   @default(GENERAL)
+  content   String
+  isPrivate Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([caseId])
+  @@index([tenantId])
+  @@map("case_notes")
 }

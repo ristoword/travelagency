@@ -15,6 +15,9 @@ import {
   QuotationStatus,
   QuotationItemType,
   ProposalStatus,
+  CaseStatus,
+  CaseServiceType,
+  CaseServiceStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -661,6 +664,140 @@ async function main() {
     },
   });
   console.log('   ✓ 1 proposal (accepted)');
+
+  // ── FASE 4: Travel Cases ───────────────────
+  console.log('\n🧳 Creating demo travel case...');
+
+  await prisma.sequenceCounter.upsert({
+    where: { tenantId_type_year: { tenantId: tenant.id, type: 'case', year: 2025 } },
+    create: { tenantId: tenant.id, type: 'case', year: 2025, lastValue: 1 },
+    update: {},
+  });
+
+  const travelCase = await prisma.travelCase.create({
+    data: {
+      tenantId: tenant.id,
+      number: 'PRA-2025-0001',
+      title: 'Viaggio di Nozze Maldive — G. Ferrari & M. Rossi',
+      status: CaseStatus.CONFIRMED,
+      clientId: clientIds[0],
+      quotationId: quot1.id,
+      destination: 'Maldive — Conrad Maldives Rangali Island',
+      departureDate: new Date('2025-06-15'),
+      returnDate: new Date('2025-06-29'),
+      numberOfPeople: 2,
+      travelType: 'honeymoon',
+      currency: 'EUR',
+      totalAmount: 11640,
+      totalCost: 8620,
+      totalPaid: 5820,
+      balance: 5820,
+      assignedToId: agentUser.id,
+      internalNotes: 'Coppia VIP. Richiedono attenzione particolare. Anniversario il 18 Giugno.',
+      statusHistory: {
+        create: [
+          { tenantId: tenant.id, toStatus: CaseStatus.INQUIRY, changedById: agentUser.id, changedAt: new Date('2025-04-15') },
+          { tenantId: tenant.id, fromStatus: CaseStatus.INQUIRY, toStatus: CaseStatus.CONFIRMED, changedById: agentUser.id, changedAt: new Date('2025-04-25'), notes: 'Preventivo accettato e acconto ricevuto' },
+        ],
+      },
+    },
+  });
+
+  // Passengers
+  await prisma.passenger.createMany({
+    data: [
+      {
+        tenantId: tenant.id, caseId: travelCase.id,
+        firstName: 'Giuseppe', lastName: 'Ferrari',
+        birthDate: new Date('1975-05-20'), nationality: 'IT',
+        taxCode: 'FRRPPL75E20H501Z',
+        passportNumber: 'AA1234567', passportExpiry: new Date('2031-03-10'), passportIssuedBy: 'Questura di Roma',
+        email: 'giuseppe.ferrari@email.it', phone: '+39 347 1111111',
+        isLeader: true, mealPreference: 'standard', seatPreference: 'window',
+      },
+      {
+        tenantId: tenant.id, caseId: travelCase.id,
+        firstName: 'Maria', lastName: 'Ferrari',
+        birthDate: new Date('1978-11-08'), nationality: 'IT',
+        taxCode: 'FRRMRA78S48H501Q',
+        passportNumber: 'BB9876543', passportExpiry: new Date('2030-07-22'), passportIssuedBy: 'Questura di Roma',
+        email: 'maria.ferrari@email.it',
+        isLeader: false, mealPreference: 'vegetarian', seatPreference: 'window',
+      },
+    ],
+  });
+
+  // Itinerary
+  const itineraryDays = [
+    { dayNumber: 1, date: new Date('2025-06-15'), title: 'Partenza da Roma — Arrivo a Malé', description: 'Volo AZ001 da FCO. Arrivo a Malé, transfer in idrovolante al resort.', location: 'Roma → Malé', accommodation: 'Conrad Maldives Rangali Island', dinner: true },
+    { dayNumber: 2, date: new Date('2025-06-16'), title: 'Primo giorno al resort', description: 'Giornata di relax. Snorkeling nella laguna privata. Benvenuto con decorazione in camera.', location: 'Conrad Maldives', accommodation: 'Conrad Maldives Rangali Island', breakfast: true, lunch: true, dinner: true },
+    { dayNumber: 3, date: new Date('2025-06-17'), title: 'Immersione subacquea', description: 'Escursione guidata di snorkeling e diving. Avvistamento mante e tartarughe.', location: 'Laguna di Rangali', accommodation: 'Conrad Maldives Rangali Island', breakfast: true, dinner: true },
+    { dayNumber: 14, date: new Date('2025-06-28'), title: 'Ultimo giorno — Relax e souvenir', description: 'Giornata libera. Cena romantica sulla spiaggia.', location: 'Conrad Maldives', accommodation: 'Conrad Maldives Rangali Island', breakfast: true, lunch: true, dinner: true },
+    { dayNumber: 15, date: new Date('2025-06-29'), title: 'Partenza — Rientro a Roma', description: 'Check-out e transfer in idrovolante a Malé. Volo di rientro.', location: 'Malé → Roma', accommodation: '', breakfast: true },
+  ];
+  await prisma.caseItinerary.createMany({
+    data: itineraryDays.map(d => ({ tenantId: tenant.id, caseId: travelCase.id, ...d })),
+  });
+
+  // Services
+  await prisma.caseService.createMany({
+    data: [
+      {
+        tenantId: tenant.id, caseId: travelCase.id,
+        type: CaseServiceType.FLIGHT, description: 'Volo A/R Roma FCO → Malé MLE, Business Class',
+        provider: 'ITA Airways', providerRef: 'AZ001-150625',
+        status: CaseServiceStatus.CONFIRMED,
+        serviceDate: new Date('2025-06-15T10:30:00'), serviceEndDate: new Date('2025-06-15T22:00:00'),
+        amount: 3600, cost: 2800, numberOfPax: 2,
+      },
+      {
+        tenantId: tenant.id, caseId: travelCase.id,
+        type: CaseServiceType.HOTEL, description: 'Conrad Maldives Rangali Island — 14 notti, Water Bungalow Suite',
+        provider: 'Conrad Hotels', providerRef: 'CNR-25-45872',
+        status: CaseServiceStatus.CONFIRMED,
+        serviceDate: new Date('2025-06-15'), serviceEndDate: new Date('2025-06-29'),
+        amount: 7200, cost: 5400, numberOfPax: 2,
+        notes: 'Suite romanticamente decorata su richiesta. Upgrade confermato.',
+      },
+      {
+        tenantId: tenant.id, caseId: travelCase.id,
+        type: CaseServiceType.TRANSFER, description: 'Idrovolante Malé ↔ Rangali Island A/R per 2 pax',
+        provider: 'Trans Maldivian Airways', providerRef: 'TMA-25-0892',
+        status: CaseServiceStatus.CONFIRMED,
+        serviceDate: new Date('2025-06-15'), amount: 600, cost: 420, numberOfPax: 2,
+      },
+      {
+        tenantId: tenant.id, caseId: travelCase.id,
+        type: CaseServiceType.INSURANCE, description: 'Assicurazione viaggio con annullamento e medico',
+        provider: 'Allianz Travel', status: CaseServiceStatus.CONFIRMED,
+        serviceDate: new Date('2025-06-15'), serviceEndDate: new Date('2025-06-29'),
+        amount: 240, cost: 160, numberOfPax: 2,
+      },
+    ],
+  });
+
+  // Complete some checklist items
+  const checklists = await prisma.caseChecklist.findMany({ where: { caseId: travelCase.id } });
+  if (checklists.length >= 2) {
+    await prisma.caseChecklist.update({
+      where: { id: checklists[0].id },
+      data: { isCompleted: true, completedAt: new Date('2025-04-28'), completedById: agentUser.id },
+    });
+    await prisma.caseChecklist.update({
+      where: { id: checklists[1].id },
+      data: { isCompleted: true, completedAt: new Date('2025-04-29'), completedById: agentUser.id },
+    });
+  }
+
+  await prisma.caseNote.create({
+    data: {
+      tenantId: tenant.id, caseId: travelCase.id,
+      type: NoteType.CALL, content: 'Chiamata con il cliente. Confermati tutti i dettagli. Richiedono decorazione romantica in camera per il 18 Giugno (anniversario).',
+      authorId: agentUser.id,
+    },
+  });
+
+  console.log('   ✓ PRA-2025-0001: 2 passeggeri, 5 giorni itinerario, 4 servizi confermati');
 
   console.log('\n✅ Seed completed!\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

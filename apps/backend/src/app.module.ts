@@ -15,6 +15,7 @@ import { SettingsModule } from './core/settings/settings.module';
 import { HealthModule } from './health/health.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { TravelCasesModule } from './modules/travel-cases/travel-cases.module';
 
 @Module({
   imports: [
@@ -59,6 +60,9 @@ import { SalesModule } from './modules/sales/sales.module';
 
     // Sales
     SalesModule,
+
+    // Travel Cases
+    TravelCasesModule,
 
     // Health check
     HealthModule,
