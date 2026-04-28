@@ -21,6 +21,12 @@ import {
   BookingType,
   BookingStatus,
   DocumentType,
+  InvoiceType,
+  InvoiceStatus,
+  PaymentMethod,
+  PaymentDirection,
+  PaymentStatus,
+  CreditNoteStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -909,6 +915,97 @@ async function main() {
   });
 
   console.log(`   ✓ ${bookingsData.length} bookings (volo, hotel, transfer, assicurazione) + 2 documenti`);
+
+  // ── FASE 6: Accounting ─────────────────────
+  console.log('\n🧾 Creating demo invoice...');
+
+  await prisma.sequenceCounter.upsert({
+    where: { tenantId_type_year: { tenantId: tenant.id, type: 'invoice_invoice', year: 2025 } },
+    create: { tenantId: tenant.id, type: 'invoice_invoice', year: 2025, lastValue: 1 },
+    update: {},
+  });
+
+  // Invoice items: same breakdown as quotation
+  const invSubtotal = 11640;
+  const invDiscount = 0;
+  const invVatRate = 22;
+  const invVatAmount = parseFloat((invSubtotal * invVatRate / 100).toFixed(2));
+  const invTotal = parseFloat((invSubtotal + invVatAmount).toFixed(2)); // 14200.80
+  const invPaid = parseFloat((invTotal / 2).toFixed(2)); // acconto 50%
+
+  const invoice = await prisma.invoice.create({
+    data: {
+      tenantId: tenant.id,
+      number: 'FT-2025-0001',
+      type: InvoiceType.INVOICE,
+      status: InvoiceStatus.PARTIALLY_PAID,
+      clientId: clientIds[0],
+      caseId: travelCase.id,
+      issuedAt: new Date('2025-04-25'),
+      dueDate: new Date('2025-06-01'),
+      sentAt: new Date('2025-04-25'),
+      currency: 'EUR',
+      subtotal: invSubtotal,
+      discountAmount: 0,
+      vatRate: invVatRate,
+      vatAmount: invVatAmount,
+      totalAmount: invTotal,
+      paidAmount: invPaid,
+      balanceDue: parseFloat((invTotal - invPaid).toFixed(2)),
+      clientName: 'Giuseppe Ferrari',
+      clientAddress: 'Via Roma 1, Milano',
+      tenantName: tenant.name,
+      tenantVat: tenant.vatNumber || '',
+      paymentTerms: 'Acconto 50% alla prenotazione, saldo 30 giorni prima della partenza.',
+      notes: 'Viaggio di nozze Maldive — PRV-2025-0001 / PRA-2025-0001',
+      items: {
+        create: [
+          { tenantId: tenant.id, description: 'Voli A/R Roma → Malé, Business Class — 2 pax', quantity: 2, unitPrice: 1800, amount: 3600, vatRate: 22, vatAmount: parseFloat((3600 * 0.22).toFixed(2)), total: parseFloat((3600 * 1.22).toFixed(2)), sortOrder: 1 },
+          { tenantId: tenant.id, description: 'Conrad Maldives — Water Bungalow Suite 14 notti', quantity: 1, unitPrice: 7200, amount: 7200, vatRate: 22, vatAmount: parseFloat((7200 * 0.22).toFixed(2)), total: parseFloat((7200 * 1.22).toFixed(2)), sortOrder: 2 },
+          { tenantId: tenant.id, description: 'Idrovolante A/R Malé ↔ Rangali — 2 pax', quantity: 1, unitPrice: 600, amount: 600, vatRate: 22, vatAmount: parseFloat((600 * 0.22).toFixed(2)), total: parseFloat((600 * 1.22).toFixed(2)), sortOrder: 3 },
+          { tenantId: tenant.id, description: 'Assicurazione viaggio — 2 pax', quantity: 2, unitPrice: 120, amount: 240, vatRate: 22, vatAmount: parseFloat((240 * 0.22).toFixed(2)), total: parseFloat((240 * 1.22).toFixed(2)), sortOrder: 4 },
+        ],
+      },
+    },
+  });
+
+  // Acconto payment
+  await prisma.payment.create({
+    data: {
+      tenantId: tenant.id,
+      invoiceId: invoice.id,
+      clientId: clientIds[0],
+      direction: PaymentDirection.INCOMING,
+      method: PaymentMethod.BANK_TRANSFER,
+      status: PaymentStatus.COMPLETED,
+      amount: invPaid,
+      currency: 'EUR',
+      reference: 'BONIFICO-25-04-25-FERRARI',
+      paidAt: new Date('2025-04-26'),
+    },
+  });
+  console.log(`   ✓ FT-2025-0001 — totale €${invTotal.toFixed(2)} (IVA 22%) — acconto 50% ricevuto`);
+
+  // Credit note (demo)
+  await prisma.sequenceCounter.upsert({
+    where: { tenantId_type_year: { tenantId: tenant.id, type: 'credit_note', year: 2025 } },
+    create: { tenantId: tenant.id, type: 'credit_note', year: 2025, lastValue: 1 },
+    update: {},
+  });
+  await prisma.creditNote.create({
+    data: {
+      tenantId: tenant.id,
+      number: 'NC-2025-0001',
+      status: CreditNoteStatus.DRAFT,
+      clientId: clientIds[1],
+      reason: 'Rimborso supplemento camera non utilizzato — prenotazione New York',
+      amount: 200,
+      vatAmount: parseFloat((200 * 0.22).toFixed(2)),
+      totalAmount: parseFloat((200 * 1.22).toFixed(2)),
+      currency: 'EUR',
+    },
+  });
+  console.log('   ✓ NC-2025-0001 — nota di credito DRAFT €244');
 
   console.log('\n✅ Seed completed!\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
