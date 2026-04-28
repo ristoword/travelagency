@@ -4,7 +4,7 @@ import {
   getPaginationParams,
   buildPaginatedResult,
 } from '../../common/utils/pagination.util';
-import { AuditAction } from '@prisma/client';
+import { AuditAction, Prisma } from '@prisma/client';
 
 export interface CreateAuditLogDto {
   tenantId: string;
@@ -12,11 +12,11 @@ export interface CreateAuditLogDto {
   action: AuditAction;
   resource: string;
   resourceId?: string;
-  oldValues?: Record<string, unknown>;
-  newValues?: Record<string, unknown>;
+  oldValues?: Prisma.InputJsonValue;
+  newValues?: Prisma.InputJsonValue;
   ipAddress?: string;
   userAgent?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.InputJsonValue;
 }
 
 export interface AuditLogQuery {

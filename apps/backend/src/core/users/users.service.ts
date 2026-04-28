@@ -177,7 +177,7 @@ export class UsersService {
       resource: 'users',
       resourceId: id,
       oldValues: { firstName: user.firstName, lastName: user.lastName, status: user.status },
-      newValues: dto,
+      newValues: { ...dto },
     });
 
     return updated;
