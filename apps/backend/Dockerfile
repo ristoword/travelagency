@@ -18,7 +18,8 @@ WORKDIR /app/apps/backend
 # Generate Prisma client and build TypeScript
 RUN pnpm prisma generate && pnpm build
 
-# Railway injects PORT automatically — EXPOSE is documentation only
+# Railway injects PORT automatically
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+# Run migrations then start — using absolute paths to avoid workdir issues
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/main"]
