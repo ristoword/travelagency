@@ -8,7 +8,7 @@ COPY package.json pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 
 # Install all dependencies
-RUN pnpm install --filter @travel-agency/backend --no-frozen-lockfile
+RUN pnpm install --filter @travel-agency/backend
 
 # Copy backend source
 COPY apps/backend ./apps/backend
