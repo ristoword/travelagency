@@ -211,7 +211,7 @@ export class ClientsService {
       resource: 'clients',
       resourceId: id,
       oldValues: { status: client.status, email: client.email },
-      newValues: dto,
+      newValues: { ...dto },
     });
 
     return updated;

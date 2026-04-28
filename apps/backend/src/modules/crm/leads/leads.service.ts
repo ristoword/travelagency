@@ -241,7 +241,7 @@ export class LeadsService {
       resource: 'leads',
       resourceId: id,
       oldValues: { status: lead.status, priority: lead.priority },
-      newValues: dto,
+      newValues: { ...dto },
     });
 
     return updated;
