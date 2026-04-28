@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1: Foundation (Tenant, User, Role, Permission, AuditLog, Settings)
+// FASE 1: Foundation | FASE 2: CRM
 // =============================================================================
 
 generator client {
@@ -13,7 +13,7 @@ datasource db {
 }
 
 // =============================================================================
-// ENUMS
+// ENUMS — FASE 1
 // =============================================================================
 
 enum TenantPlan {
@@ -44,8 +44,100 @@ enum AuditAction {
 }
 
 // =============================================================================
-// TENANTS
-// Multi-tenant row-level isolation: every model includes tenantId
+// ENUMS — FASE 2 CRM
+// =============================================================================
+
+enum ClientType {
+  INDIVIDUAL
+  COMPANY
+  FAMILY
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+enum ClientSource {
+  WALK_IN
+  REFERRAL
+  WEBSITE
+  SOCIAL_MEDIA
+  EMAIL_CAMPAIGN
+  PHONE
+  PARTNER
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  WON
+  LOST
+  ARCHIVED
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum LeadSource {
+  WEBSITE
+  SOCIAL_MEDIA
+  REFERRAL
+  WALK_IN
+  EMAIL
+  PHONE
+  CAMPAIGN
+  PARTNER
+  OTHER
+}
+
+enum NoteType {
+  GENERAL
+  CALL
+  EMAIL
+  MEETING
+  WHATSAPP
+  INTERNAL
+}
+
+enum HistoryEventType {
+  LEAD_CREATED
+  LEAD_CONVERTED
+  CLIENT_CREATED
+  BOOKING_CREATED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  QUOTATION_SENT
+  QUOTATION_ACCEPTED
+  QUOTATION_REJECTED
+  INVOICE_SENT
+  PAYMENT_RECEIVED
+  DOCUMENT_UPLOADED
+  NOTE_ADDED
+  CALL_LOGGED
+  EMAIL_SENT
+  MEETING_SCHEDULED
+  COMPLAINT_FILED
+  OTHER
+}
+
+enum TagType {
+  CLIENT
+  LEAD
+  BOOKING
+  GENERAL
+}
+
+// =============================================================================
+// FASE 1: TENANTS
 // =============================================================================
 
 model Tenant {
@@ -70,12 +162,18 @@ model Tenant {
   roles          Role[]
   auditLogs      AuditLog[]
   settings       TenantSetting[]
+  clients        Client[]
+  leads          Lead[]
+  contacts       Contact[]
+  tags           Tag[]
+  customerNotes  CustomerNote[]
+  customerHistory CustomerHistory[]
 
   @@map("tenants")
 }
 
 // =============================================================================
-// USERS
+// FASE 1: USERS
 // =============================================================================
 
 model User {
@@ -101,8 +199,11 @@ model User {
   updatedAt           DateTime   @updatedAt
   deletedAt           DateTime?
 
-  userRoles UserRole[]
-  auditLogs AuditLog[]
+  userRoles       UserRole[]
+  auditLogs       AuditLog[]
+  assignedClients Client[]         @relation("ClientAssignedTo")
+  assignedLeads   Lead[]           @relation("LeadAssignedTo")
+  customerNotes   CustomerNote[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -111,7 +212,7 @@ model User {
 }
 
 // =============================================================================
-// ROLES
+// FASE 1: ROLES & PERMISSIONS
 // =============================================================================
 
 model Role {
@@ -132,12 +233,6 @@ model Role {
   @@map("roles")
 }
 
-// =============================================================================
-// PERMISSIONS
-// resource = "clients" | "leads" | "bookings" | ...
-// action   = "create"  | "read"  | "update"   | "delete" | "export" | ...
-// =============================================================================
-
 model Permission {
   id          String  @id @default(uuid())
   resource    String
@@ -149,10 +244,6 @@ model Permission {
   @@unique([resource, action])
   @@map("permissions")
 }
-
-// =============================================================================
-// JOIN TABLES
-// =============================================================================
 
 model UserRole {
   userId     String
@@ -177,8 +268,7 @@ model RolePermission {
 }
 
 // =============================================================================
-// AUDIT LOG
-// Complete traceability of all actions in the system
+// FASE 1: AUDIT LOG
 // =============================================================================
 
 model AuditLog {
@@ -205,8 +295,7 @@ model AuditLog {
 }
 
 // =============================================================================
-// TENANT SETTINGS
-// Key-value store for tenant-specific configuration
+// FASE 1: TENANT SETTINGS
 // =============================================================================
 
 model TenantSetting {
@@ -221,4 +310,287 @@ model TenantSetting {
   @@unique([tenantId, key])
   @@index([tenantId])
   @@map("tenant_settings")
+}
+
+// =============================================================================
+// FASE 2: CLIENTS
+// =============================================================================
+
+model Client {
+  id                     String       @id @default(uuid())
+  tenantId               String
+  tenant                 Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type                   ClientType   @default(INDIVIDUAL)
+  status                 ClientStatus @default(ACTIVE)
+  source                 ClientSource @default(OTHER)
+
+  // Personal / Company info
+  firstName              String?
+  lastName               String?
+  companyName            String?
+  taxCode                String?
+  vatNumber              String?
+  birthDate              DateTime?
+
+  // Contact info
+  email                  String?
+  phone                  String?
+  mobile                 String?
+  website                String?
+
+  // Address
+  address                String?
+  city                   String?
+  province               String?
+  postalCode             String?
+  country                String?      @default("IT")
+
+  // Preferences
+  preferredLanguage      String?      @default("it")
+  preferredCurrency      String?      @default("EUR")
+
+  // Flags
+  isVip                  Boolean      @default(false)
+  isNewsletterSubscribed Boolean      @default(false)
+
+  // Stats (denormalized for performance)
+  totalBookings          Int          @default(0)
+  totalSpent             Decimal      @default(0) @db.Decimal(12, 2)
+  lastBookingDate        DateTime?
+
+  // Internal
+  assignedToId           String?
+  assignedTo             User?        @relation("ClientAssignedTo", fields: [assignedToId], references: [id])
+  internalNotes          String?
+
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  deletedAt              DateTime?
+
+  contacts               Contact[]
+  notes                  CustomerNote[]
+  preferences            CustomerPreference[]
+  history                CustomerHistory[]
+  tags                   ClientTag[]
+  leads                  Lead[]
+
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@index([tenantId, status])
+  @@index([tenantId, type])
+  @@index([tenantId, isVip])
+  @@map("clients")
+}
+
+// =============================================================================
+// FASE 2: LEADS
+// =============================================================================
+
+model Lead {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Basic info
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  mobile         String?
+
+  // Lead classification
+  status         LeadStatus   @default(NEW)
+  priority       LeadPriority @default(MEDIUM)
+  source         LeadSource   @default(OTHER)
+  score          Int          @default(0)
+
+  // Travel request
+  destination    String?
+  departureDate  DateTime?
+  returnDate     DateTime?
+  numberOfPeople Int?
+  budget         Decimal?     @db.Decimal(10, 2)
+  budgetCurrency String?      @default("EUR")
+  travelType     String?
+  description    String?
+
+  // Assignment
+  assignedToId   String?
+  assignedTo     User?        @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+
+  // Conversion
+  clientId       String?
+  client         Client?      @relation(fields: [clientId], references: [id])
+  convertedAt    DateTime?
+  lostReason     String?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  notes          CustomerNote[]  @relation("LeadNotes")
+  history        CustomerHistory[] @relation("LeadHistory")
+  tags           LeadTag[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, priority])
+  @@index([tenantId, assignedToId])
+  @@map("leads")
+}
+
+// =============================================================================
+// FASE 2: CONTACTS (linked to a Client)
+// =============================================================================
+
+model Contact {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  mobile      String?
+  role        String?   // e.g., "Coniuge", "Referente aziendale", "Figlio"
+  birthDate   DateTime?
+  taxCode     String?
+  isPrimary   Boolean  @default(false)
+  notes       String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@map("contacts")
+}
+
+// =============================================================================
+// FASE 2: TAGS
+// =============================================================================
+
+model Tag {
+  id       String  @id @default(uuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     String
+  color    String  @default("#6366f1")
+  type     TagType @default(GENERAL)
+
+  clientTags ClientTag[]
+  leadTags   LeadTag[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("tags")
+}
+
+model ClientTag {
+  clientId   String
+  tagId      String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@id([clientId, tagId])
+  @@map("client_tags")
+}
+
+model LeadTag {
+  leadId     String
+  tagId      String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@id([leadId, tagId])
+  @@map("lead_tags")
+}
+
+// =============================================================================
+// FASE 2: CUSTOMER NOTES
+// =============================================================================
+
+model CustomerNote {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  clientId   String?
+  client     Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leadId     String?
+  lead       Lead?    @relation("LeadNotes", fields: [leadId], references: [id], onDelete: Cascade)
+
+  authorId   String?
+  author     User?    @relation(fields: [authorId], references: [id])
+
+  type       NoteType @default(GENERAL)
+  content    String
+  isPrivate  Boolean  @default(false)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([leadId])
+  @@map("customer_notes")
+}
+
+// =============================================================================
+// FASE 2: CUSTOMER PREFERENCES
+// =============================================================================
+
+model CustomerPreference {
+  id        String   @id @default(uuid())
+  tenantId  String
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  key       String
+  value     Json
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, key])
+  @@index([tenantId])
+  @@index([clientId])
+  @@map("customer_preferences")
+}
+
+// =============================================================================
+// FASE 2: CUSTOMER HISTORY (timeline)
+// =============================================================================
+
+model CustomerHistory {
+  id            String           @id @default(uuid())
+  tenantId      String
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  clientId      String?
+  client        Client?          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leadId        String?
+  lead          Lead?            @relation("LeadHistory", fields: [leadId], references: [id], onDelete: Cascade)
+
+  eventType     HistoryEventType
+  title         String
+  description   String?
+  referenceId   String?
+  referenceType String?
+  metadata      Json?
+  eventDate     DateTime         @default(now())
+
+  createdAt     DateTime         @default(now())
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([leadId])
+  @@index([eventDate])
+  @@map("customer_history")
 }

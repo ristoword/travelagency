@@ -13,6 +13,7 @@ import { PermissionsModule } from './core/permissions/permissions.module';
 import { AuditLogModule } from './core/audit-log/audit-log.module';
 import { SettingsModule } from './core/settings/settings.module';
 import { HealthModule } from './health/health.module';
+import { CrmModule } from './modules/crm/crm.module';
 
 @Module({
   imports: [
@@ -51,6 +52,9 @@ import { HealthModule } from './health/health.module';
     PermissionsModule,
     AuditLogModule,
     SettingsModule,
+
+    // CRM
+    CrmModule,
 
     // Health check
     HealthModule,
