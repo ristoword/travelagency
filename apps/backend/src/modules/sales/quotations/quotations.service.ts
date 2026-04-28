@@ -241,7 +241,7 @@ export class QuotationsService {
   async update(tenantId: string, id: string, dto: Partial<CreateQuotationDto>, updatedBy?: string) {
     const existing = await this.findOne(tenantId, id);
 
-    if ([QuotationStatus.ACCEPTED, QuotationStatus.CONVERTED].includes(existing.status as QuotationStatus)) {
+    if ((['ACCEPTED', 'CONVERTED'] as string[]).includes(existing.status)) {
       throw new BadRequestException('Cannot edit an accepted or converted quotation');
     }
 
@@ -255,7 +255,16 @@ export class QuotationsService {
     const updated = await this.prisma.quotation.update({
       where: { id },
       data: {
-        ...dto,
+        destination: dto.destination,
+        numberOfPeople: dto.numberOfPeople,
+        travelType: dto.travelType,
+        currency: dto.currency,
+        discountType: dto.discountType,
+        discountValue: dto.discountValue,
+        clientNotes: dto.clientNotes,
+        internalNotes: dto.internalNotes,
+        terms: dto.terms,
+        assignedToId: dto.assignedToId,
         departureDate: dto.departureDate ? new Date(dto.departureDate) : undefined,
         returnDate: dto.returnDate ? new Date(dto.returnDate) : undefined,
         validUntil: dto.validUntil ? new Date(dto.validUntil) : undefined,
@@ -273,7 +282,8 @@ export class QuotationsService {
     await this.auditLogService.log({
       tenantId, userId: updatedBy, action: AuditAction.UPDATE,
       resource: 'quotations', resourceId: id,
-      oldValues: { status: existing.status }, newValues: dto,
+      oldValues: { status: existing.status },
+      newValues: { destination: dto.destination, discountValue: dto.discountValue },
     });
 
     return updated;
@@ -297,7 +307,7 @@ export class QuotationsService {
 
   async addItem(tenantId: string, quotationId: string, item: CreateQuotationItemDto, userId?: string) {
     const q = await this.findOne(tenantId, quotationId);
-    if ([QuotationStatus.ACCEPTED, QuotationStatus.CONVERTED].includes(q.status as QuotationStatus)) {
+    if ((['ACCEPTED', 'CONVERTED'] as string[]).includes(q.status)) {
       throw new BadRequestException('Cannot add items to an accepted quotation');
     }
 

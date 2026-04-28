@@ -2,7 +2,7 @@ import {
   Injectable, NotFoundException, ConflictException, Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { TemplateType, TemplateFormat } from '@prisma/client';
+import { TemplateType, TemplateFormat, Prisma } from '@prisma/client';
 import { IsString, IsOptional, IsEnum, IsBoolean, IsObject, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -46,7 +46,7 @@ export class DocumentTemplatesService {
     }
 
     const tpl = await this.prisma.documentTemplate.create({
-      data: { tenantId, ...dto, variables: dto.variables ?? undefined },
+      data: { tenantId, ...dto, variables: (dto.variables ?? undefined) as Prisma.InputJsonValue | undefined },
     });
 
     this.logger.log(`Template created: ${tpl.name} (${tpl.type})`);
@@ -87,7 +87,7 @@ export class DocumentTemplatesService {
 
     return this.prisma.documentTemplate.update({
       where: { id },
-      data: { ...dto, variables: dto.variables ?? undefined },
+      data: { ...dto, variables: (dto.variables ?? undefined) as Prisma.InputJsonValue | undefined },
     });
   }
 

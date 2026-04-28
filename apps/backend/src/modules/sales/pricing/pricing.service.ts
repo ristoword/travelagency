@@ -96,14 +96,13 @@ export class PricingService {
         _avg: { marginPercent: true },
         _count: true,
       }),
-      this.prisma.quotation.groupBy({
-        by: [],
+      this.prisma.quotation.aggregate({
         where: { tenantId, status: { in: ['ACCEPTED', 'CONVERTED'] } },
         _sum: { totalAmount: true, totalMargin: true, totalCost: true },
         _avg: { marginPercent: true },
       }),
     ]);
 
-    return { byType, overall: monthly[0] ?? null };
+    return { byType, overall: monthly ?? null };
   }
 }

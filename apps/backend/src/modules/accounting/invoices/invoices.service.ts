@@ -57,7 +57,7 @@ export class InvoicesService {
     return { tenantId, description: item.description, quantity: item.quantity, unitPrice: item.unitPrice, amount, vatRate, vatAmount, total, sortOrder: item.sortOrder ?? 0 };
   }
 
-  private calcFinancials(items: Array<{ amount: number; vatRate: number; unitPrice: number; quantity: number }>, vatRate: number, discountAmount = 0) {
+  private calcFinancials(items: Array<{ unitPrice: number; quantity: number }>, vatRate: number, discountAmount = 0) {
     const subtotal = parseFloat(items.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2));
     const subtotalAfterDiscount = parseFloat((subtotal - discountAmount).toFixed(2));
     const vatAmount = parseFloat((subtotalAfterDiscount * vatRate / 100).toFixed(2));
@@ -187,8 +187,7 @@ export class InvoicesService {
         _sum: { balanceDue: true },
         _count: true,
       }),
-      this.prisma.invoice.groupBy({
-        by: [],
+      this.prisma.invoice.aggregate({
         where: {
           tenantId, deletedAt: null,
           issuedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) },
@@ -197,7 +196,7 @@ export class InvoicesService {
       }),
     ]);
 
-    return { byStatus, totals, overdue, currentMonth: monthly[0] ?? { _sum: { totalAmount: 0 } } };
+    return { byStatus, totals, overdue, currentMonth: monthly ?? { _sum: { totalAmount: 0 } } };
   }
 
   async findOne(tenantId: string, id: string) {
@@ -211,7 +210,7 @@ export class InvoicesService {
 
   async update(tenantId: string, id: string, dto: Partial<CreateInvoiceDto>, updatedBy?: string) {
     const inv = await this.findOne(tenantId, id);
-    if ([InvoiceStatus.PAID, InvoiceStatus.CANCELLED].includes(inv.status as InvoiceStatus)) {
+    if ((['PAID', 'CANCELLED'] as string[]).includes(inv.status)) {
       throw new BadRequestException('Cannot edit a paid or cancelled invoice');
     }
 
@@ -223,7 +222,10 @@ export class InvoicesService {
     const updated = await this.prisma.invoice.update({
       where: { id },
       data: {
-        ...dto,
+        notes: dto.notes,
+        internalNotes: dto.internalNotes,
+        paymentTerms: dto.paymentTerms,
+        currency: dto.currency,
         issuedAt: dto.issuedAt ? new Date(dto.issuedAt) : undefined,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         vatRate, discountAmount, ...financials,
@@ -239,7 +241,8 @@ export class InvoicesService {
 
     await this.auditLogService.log({
       tenantId, userId: updatedBy, action: AuditAction.UPDATE,
-      resource: 'invoices', resourceId: id, newValues: dto,
+      resource: 'invoices', resourceId: id,
+      newValues: { vatRate, discountAmount, notes: dto.notes },
     });
     return updated;
   }
@@ -299,7 +302,7 @@ export class InvoicesService {
 
   async cancel(tenantId: string, id: string, userId?: string) {
     const inv = await this.findOne(tenantId, id);
-    if ([InvoiceStatus.PAID, InvoiceStatus.CANCELLED].includes(inv.status as InvoiceStatus)) {
+    if ((['PAID', 'CANCELLED'] as string[]).includes(inv.status)) {
       throw new BadRequestException('Invoice is already paid or cancelled');
     }
     return this.prisma.invoice.update({

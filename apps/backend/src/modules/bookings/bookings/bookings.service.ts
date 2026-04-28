@@ -6,7 +6,7 @@ import { AuditLogService } from '../../../core/audit-log/audit-log.service';
 import { getPaginationParams, buildPaginatedResult } from '../../../common/utils/pagination.util';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QueryBookingsDto } from './dto/query-bookings.dto';
-import { AuditAction, BookingStatus } from '@prisma/client';
+import { AuditAction, BookingStatus, Prisma } from '@prisma/client';
 
 const BOOKING_SELECT = {
   id: true, tenantId: true, number: true, type: true, status: true, description: true,
@@ -79,7 +79,7 @@ export class BookingsService {
         commissionRate: dto.commissionRate,
         isPaidToSupplier: dto.isPaidToSupplier ?? false,
         numberOfPax: dto.numberOfPax,
-        details: dto.details ?? undefined,
+        details: (dto.details ?? undefined) as Prisma.InputJsonValue | undefined,
         notes: dto.notes,
         internalNotes: dto.internalNotes,
         assignedToId: dto.assignedToId,
@@ -201,10 +201,23 @@ export class BookingsService {
     const updated = await this.prisma.booking.update({
       where: { id },
       data: {
-        ...dto,
+        description: dto.description,
+        supplierName: dto.supplierName,
+        supplierRef: dto.supplierRef,
+        providerRef: dto.providerRef,
+        confirmationCode: dto.confirmationCode,
+        currency: dto.currency,
+        amount: dto.amount,
+        cost: dto.cost,
+        commissionRate: dto.commissionRate,
+        isPaidToSupplier: dto.isPaidToSupplier,
+        numberOfPax: dto.numberOfPax,
+        notes: dto.notes,
+        internalNotes: dto.internalNotes,
+        assignedToId: dto.assignedToId,
         serviceDate: dto.serviceDate ? new Date(dto.serviceDate) : undefined,
         serviceEndDate: dto.serviceEndDate ? new Date(dto.serviceEndDate) : undefined,
-        details: dto.details ?? undefined,
+        details: (dto.details ?? undefined) as Prisma.InputJsonValue | undefined,
         ...financials,
       },
       select: BOOKING_SELECT,
@@ -213,7 +226,8 @@ export class BookingsService {
     await this.auditLogService.log({
       tenantId, userId: updatedBy, action: AuditAction.UPDATE,
       resource: 'bookings', resourceId: id,
-      oldValues: { status: existing.status }, newValues: dto,
+      oldValues: { status: existing.status },
+      newValues: { amount: dto.amount, status: dto.status },
     });
 
     return updated;

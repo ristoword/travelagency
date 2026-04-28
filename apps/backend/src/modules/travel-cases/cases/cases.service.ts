@@ -227,7 +227,7 @@ export class CasesService {
     return this.findOne(tenantId, id);
   }
 
-  async addNote(tenantId: string, caseId: string, content: string, type = NoteType.GENERAL, isPrivate = false, authorId?: string) {
+  async addNote(tenantId: string, caseId: string, content: string, type: NoteType = NoteType.GENERAL, isPrivate = false, authorId?: string) {
     await this.findOne(tenantId, caseId);
     return this.prisma.caseNote.create({
       data: { tenantId, caseId, content, type, isPrivate, authorId },
@@ -246,7 +246,7 @@ export class CasesService {
 
   async remove(tenantId: string, id: string, deletedBy?: string) {
     const c = await this.findOne(tenantId, id);
-    if ([CaseStatus.IN_PROGRESS, CaseStatus.COMPLETED].includes(c.status as CaseStatus)) {
+    if ((['IN_PROGRESS', 'COMPLETED'] as string[]).includes(c.status)) {
       throw new BadRequestException('Cannot delete an active or completed case');
     }
     await this.prisma.travelCase.update({ where: { id }, data: { deletedAt: new Date() } });
