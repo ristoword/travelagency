@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1 | FASE 2: CRM | FASE 3: Sales | FASE 4: Travel Cases | FASE 5: Bookings | FASE 6: Accounting
+// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents
 // =============================================================================
 
 generator client {
@@ -173,9 +173,11 @@ model Tenant {
   proposals       Proposal[]
   travelCases     TravelCase[]
   bookings        Booking[]
-  invoices        Invoice[]
-  payments        Payment[]
-  creditNotes     CreditNote[]
+  invoices          Invoice[]
+  payments          Payment[]
+  creditNotes       CreditNote[]
+  clientDocuments   ClientDocument[]
+  documentTemplates DocumentTemplate[]
 
   @@map("tenants")
 }
@@ -393,6 +395,7 @@ model Client {
   invoices               Invoice[]        @relation("InvoiceClient")
   payments               Payment[]        @relation("PaymentClient")
   creditNotes            CreditNote[]     @relation("CreditNoteClient")
+  documents              ClientDocument[] @relation("ClientDocuments")
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -1479,4 +1482,117 @@ model CreditNote {
   @@index([tenantId])
   @@index([tenantId, invoiceId])
   @@map("credit_notes")
+}
+
+// =============================================================================
+// ENUMS — FASE 7 DOCUMENTS
+// =============================================================================
+
+enum ClientDocumentType {
+  PASSPORT
+  IDENTITY_CARD
+  DRIVING_LICENSE
+  VISA
+  HEALTH_CARD
+  TAX_CODE_CARD
+  RESIDENCE_PERMIT
+  OTHER
+}
+
+enum ClientDocumentStatus {
+  VALID
+  EXPIRING_SOON
+  EXPIRED
+  UNKNOWN
+}
+
+enum TemplateType {
+  INVOICE
+  PROFORMA
+  QUOTATION
+  PROPOSAL
+  VOUCHER
+  CONTRACT
+  ITINERARY
+  WELCOME_LETTER
+  OTHER
+}
+
+enum TemplateFormat {
+  HTML
+  MARKDOWN
+}
+
+// =============================================================================
+// FASE 7: CLIENT DOCUMENTS (Passaporti, Carte d'identità, Visti...)
+// =============================================================================
+
+model ClientDocument {
+  id            String               @id @default(uuid())
+  tenantId      String
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Owner — at least one of these must be set
+  clientId      String?
+  client        Client?              @relation("ClientDocuments", fields: [clientId], references: [id])
+  passengerId   String?
+
+  type          ClientDocumentType   @default(PASSPORT)
+  status        ClientDocumentStatus @default(UNKNOWN)
+
+  // Document data
+  documentNumber String?
+  issuedBy       String?
+  issuedAt       DateTime?
+  expiryDate     DateTime?
+  nationality    String?             @default("IT")
+
+  // Holder info (snapshot)
+  holderFirstName String?
+  holderLastName  String?
+  holderBirthDate DateTime?
+
+  // File
+  fileUrl        String?
+  fileKey        String?
+  mimeType       String?
+  sizeBytes      Int?
+
+  notes          String?
+  uploadedById   String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([passengerId])
+  @@index([expiryDate])
+  @@map("client_documents")
+}
+
+// =============================================================================
+// FASE 7: DOCUMENT TEMPLATES
+// =============================================================================
+
+model DocumentTemplate {
+  id          String         @id @default(uuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type        TemplateType
+  name        String
+  description String?
+  format      TemplateFormat @default(HTML)
+  content     String
+  isDefault   Boolean        @default(false)
+  isActive    Boolean        @default(true)
+  variables   Json?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([tenantId, type, name])
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@map("document_templates")
 }

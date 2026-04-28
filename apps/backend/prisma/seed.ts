@@ -27,6 +27,10 @@ import {
   PaymentDirection,
   PaymentStatus,
   CreditNoteStatus,
+  ClientDocumentType,
+  ClientDocumentStatus,
+  TemplateType,
+  TemplateFormat,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -1006,6 +1010,162 @@ async function main() {
     },
   });
   console.log('   ✓ NC-2025-0001 — nota di credito DRAFT €244');
+
+  // ── FASE 7: Documents ──────────────────────
+  console.log('\n📄 Creating demo documents...');
+
+  // Passaporti clienti
+  await prisma.clientDocument.createMany({
+    data: [
+      {
+        tenantId: tenant.id, clientId: clientIds[0],
+        type: ClientDocumentType.PASSPORT, status: ClientDocumentStatus.VALID,
+        documentNumber: 'AA1234567', issuedBy: 'Questura di Roma',
+        issuedAt: new Date('2020-03-10'), expiryDate: new Date('2030-03-10'),
+        nationality: 'IT', holderFirstName: 'Giuseppe', holderLastName: 'Ferrari',
+        holderBirthDate: new Date('1975-05-20'),
+      },
+      {
+        tenantId: tenant.id, clientId: clientIds[0],
+        type: ClientDocumentType.PASSPORT, status: ClientDocumentStatus.VALID,
+        documentNumber: 'BB9876543', issuedBy: 'Questura di Roma',
+        issuedAt: new Date('2020-07-22'), expiryDate: new Date('2030-07-22'),
+        nationality: 'IT', holderFirstName: 'Maria', holderLastName: 'Ferrari',
+        holderBirthDate: new Date('1978-11-08'),
+      },
+      {
+        tenantId: tenant.id, clientId: clientIds[1],
+        type: ClientDocumentType.IDENTITY_CARD, status: ClientDocumentStatus.EXPIRING_SOON,
+        documentNumber: 'CA12345AB', issuedBy: 'Comune di Roma',
+        issuedAt: new Date('2020-01-15'), expiryDate: new Date(Date.now() + 45 * 86400000),
+        nationality: 'IT', holderFirstName: 'Lucia', holderLastName: 'Conti',
+        holderBirthDate: new Date('1985-09-12'),
+      },
+    ],
+  });
+  console.log('   ✓ 3 client documents (2 passaporti VALID + 1 carta identità EXPIRING_SOON)');
+
+  // Document Templates
+  const invoiceTemplate = `<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Fattura {{invoice.number}}</title>
+<style>body{font-family:Arial,sans-serif;margin:40px;color:#333}
+.header{display:flex;justify-content:space-between;margin-bottom:30px}
+.logo{font-size:24px;font-weight:bold;color:#1a56db}
+table{width:100%;border-collapse:collapse;margin:20px 0}
+th{background:#f3f4f6;padding:10px;text-align:left;border-bottom:2px solid #e5e7eb}
+td{padding:8px 10px;border-bottom:1px solid #e5e7eb}
+.total{font-size:18px;font-weight:bold;text-align:right;margin-top:20px}
+.footer{margin-top:40px;font-size:12px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:20px}
+</style></head>
+<body>
+<div class="header">
+  <div class="logo">{{tenant.name}}</div>
+  <div><strong>FATTURA N. {{invoice.number}}</strong><br>
+  Data: {{invoice.issuedAt}}<br>Scadenza: {{invoice.dueDate}}</div>
+</div>
+<div style="display:flex;justify-content:space-between;margin-bottom:20px">
+  <div><strong>Fornitore</strong><br>{{tenant.name}}<br>P.IVA: {{tenant.vat}}</div>
+  <div><strong>Cliente</strong><br>{{client.name}}<br>{{client.address}}<br>P.IVA: {{client.vat}}</div>
+</div>
+<table><thead><tr><th>Descrizione</th><th>Qtà</th><th>Prezzo</th><th>IVA</th><th>Totale</th></tr></thead>
+<tbody><tr><td colspan="5" style="text-align:center;color:#6b7280">[righe fattura]</td></tr></tbody></table>
+<div class="total">Totale IVA inclusa: {{invoice.total}}</div>
+<div class="footer">{{invoice.paymentTerms}}<br>{{tenant.name}} — P.IVA {{tenant.vat}}</div>
+</body></html>`;
+
+  const quotationTemplate = `<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Preventivo {{quotation.number}}</title>
+<style>body{font-family:Arial,sans-serif;margin:40px;color:#333}
+h1{color:#1a56db}table{width:100%;border-collapse:collapse}
+th{background:#f3f4f6;padding:10px;border-bottom:2px solid #e5e7eb}
+td{padding:8px;border-bottom:1px solid #e5e7eb}
+.highlight{background:#eff6ff;padding:15px;border-radius:8px;margin:20px 0}
+</style></head>
+<body>
+<h1>Preventivo di Viaggio</h1>
+<p><strong>N. {{quotation.number}}</strong> — Valido fino al: {{quotation.validUntil}}</p>
+<div class="highlight">
+  <strong>Destinazione:</strong> {{quotation.destination}}<br>
+  <strong>Partenza:</strong> {{quotation.departureDate}} &nbsp;|&nbsp; <strong>Rientro:</strong> {{quotation.returnDate}}<br>
+  <strong>Passeggeri:</strong> {{quotation.numberOfPeople}}
+</div>
+<table><thead><tr><th>Servizio</th><th>Dettagli</th><th>Prezzo</th></tr></thead>
+<tbody><tr><td colspan="3" style="text-align:center;color:#6b7280">[servizi inclusi]</td></tr></tbody></table>
+<p style="text-align:right;font-size:20px"><strong>Totale: {{quotation.total}}</strong></p>
+<p style="color:#6b7280;font-size:12px">{{quotation.terms}}</p>
+</body></html>`;
+
+  const itineraryTemplate = `<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Programma di Viaggio</title>
+<style>body{font-family:Arial,sans-serif;margin:40px;color:#333}
+h1{color:#1a56db}.day{border-left:4px solid #1a56db;padding-left:15px;margin:20px 0}
+.day-title{font-weight:bold;font-size:16px;color:#1a56db}.meals{color:#6b7280;font-size:13px}
+</style></head>
+<body>
+<h1>Programma di Viaggio — {{case.title}}</h1>
+<p><strong>Pratica:</strong> {{case.number}} | <strong>Partenza:</strong> {{case.departureDate}} | <strong>Rientro:</strong> {{case.returnDate}}</p>
+<p><strong>Passeggeri:</strong> {{case.passengers}}</p>
+<hr/>
+<div class="day">
+  <div class="day-title">Giorno 1 — {{itinerary.day1.date}}: {{itinerary.day1.title}}</div>
+  <p>{{itinerary.day1.description}}</p>
+  <div class="meals">Pasti inclusi: vedi programma</div>
+</div>
+<p style="color:#6b7280;font-size:12px;margin-top:40px">Documento generato da {{tenant.name}}</p>
+</body></html>`;
+
+  await prisma.documentTemplate.createMany({
+    data: [
+      {
+        tenantId: tenant.id,
+        type: TemplateType.INVOICE,
+        name: 'Fattura Standard IT',
+        description: 'Template fattura con IVA per il mercato italiano',
+        format: TemplateFormat.HTML,
+        content: invoiceTemplate,
+        isDefault: true, isActive: true,
+        variables: {
+          'tenant.name': 'Nome agenzia',
+          'tenant.vat': 'Partita IVA',
+          'invoice.number': 'Numero fattura',
+          'invoice.total': 'Totale con IVA',
+          'client.name': 'Nome cliente',
+        },
+      },
+      {
+        tenantId: tenant.id,
+        type: TemplateType.QUOTATION,
+        name: 'Preventivo Standard',
+        description: 'Template preventivo con riepilogo servizi',
+        format: TemplateFormat.HTML,
+        content: quotationTemplate,
+        isDefault: true, isActive: true,
+        variables: {
+          'quotation.number': 'Numero preventivo',
+          'quotation.destination': 'Destinazione',
+          'quotation.total': 'Totale preventivo',
+        },
+      },
+      {
+        tenantId: tenant.id,
+        type: TemplateType.ITINERARY,
+        name: 'Programma Giornaliero',
+        description: 'Itinerario giorno per giorno con strutture e pasti',
+        format: TemplateFormat.HTML,
+        content: itineraryTemplate,
+        isDefault: true, isActive: true,
+        variables: {
+          'case.title': 'Titolo pratica',
+          'case.number': 'Numero pratica',
+        },
+      },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('   ✓ 3 document templates (Fattura, Preventivo, Itinerario)');
 
   console.log('\n✅ Seed completed!\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

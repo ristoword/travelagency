@@ -18,6 +18,7 @@ import { SalesModule } from './modules/sales/sales.module';
 import { TravelCasesModule } from './modules/travel-cases/travel-cases.module';
 import { BookingsRootModule } from './modules/bookings/bookings-root.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 @Module({
   imports: [
@@ -71,6 +72,9 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 
     // Accounting
     AccountingModule,
+
+    // Documents
+    DocumentsModule,
 
     // Health check
     HealthModule,
