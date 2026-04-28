@@ -18,6 +18,9 @@ import {
   CaseStatus,
   CaseServiceType,
   CaseServiceStatus,
+  BookingType,
+  BookingStatus,
+  DocumentType,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -798,6 +801,114 @@ async function main() {
   });
 
   console.log('   ✓ PRA-2025-0001: 2 passeggeri, 5 giorni itinerario, 4 servizi confermati');
+
+  // ── FASE 5: Bookings ───────────────────────
+  console.log('\n📦 Creating demo bookings...');
+
+  await prisma.sequenceCounter.upsert({
+    where: { tenantId_type_year: { tenantId: tenant.id, type: 'booking', year: 2025 } },
+    create: { tenantId: tenant.id, type: 'booking', year: 2025, lastValue: 1 },
+    update: {},
+  });
+
+  const bookingsData = [
+    {
+      number: 'BOO-2025-0001',
+      type: BookingType.FLIGHT,
+      status: BookingStatus.CONFIRMED,
+      description: 'Volo A/R Roma FCO → Malé MLE — Business Class — 2 pax',
+      caseId: travelCase.id, clientId: clientIds[0],
+      supplierName: 'ITA Airways', supplierRef: 'IATA-AZ001',
+      confirmationCode: 'AZ-CONF-250615', providerRef: 'PNR-ABCDEF',
+      serviceDate: new Date('2025-06-15T10:30:00'), serviceEndDate: new Date('2025-06-15T22:00:00'),
+      currency: 'EUR', amount: 3600, cost: 2800, commissionRate: 5,
+      isPaidToSupplier: true, paidToSupplierAt: new Date('2025-05-01'),
+      numberOfPax: 2,
+      details: { from: 'FCO', to: 'MLE', airline: 'ITA Airways', flightNumber: 'AZ001', class: 'business', pnr: 'ABCDEF', departure: '10:30', arrival: '22:00' },
+    },
+    {
+      number: 'BOO-2025-0002',
+      type: BookingType.HOTEL,
+      status: BookingStatus.CONFIRMED,
+      description: 'Conrad Maldives Rangali Island — Water Bungalow Suite — 14 notti — 2 pax',
+      caseId: travelCase.id, clientId: clientIds[0],
+      supplierName: 'Conrad Hotels & Resorts', supplierRef: 'HILTON-MV',
+      confirmationCode: 'CNR-45872-MV', providerRef: 'BEDBANK-0093',
+      serviceDate: new Date('2025-06-15'), serviceEndDate: new Date('2025-06-29'),
+      currency: 'EUR', amount: 7200, cost: 5400, commissionRate: 10,
+      isPaidToSupplier: false, numberOfPax: 2,
+      details: { hotelName: 'Conrad Maldives Rangali Island', roomType: 'Water Bungalow Suite', checkIn: '2025-06-15', checkOut: '2025-06-29', nights: 14, mealPlan: 'BB', board: 'Bed & Breakfast', stars: 5 },
+    },
+    {
+      number: 'BOO-2025-0003',
+      type: BookingType.TRANSFER,
+      status: BookingStatus.CONFIRMED,
+      description: 'Idrovolante A/R Malé Airport ↔ Rangali Island — 2 pax',
+      caseId: travelCase.id, clientId: clientIds[0],
+      supplierName: 'Trans Maldivian Airways', confirmationCode: 'TMA-0892-25',
+      serviceDate: new Date('2025-06-15'), amount: 600, cost: 420,
+      isPaidToSupplier: false, numberOfPax: 2,
+      details: { from: 'Malé Airport', to: 'Rangali Island', vehicle: 'Idrovolante', pickupTime: '22:30' },
+    },
+    {
+      number: 'BOO-2025-0004',
+      type: BookingType.INSURANCE,
+      status: BookingStatus.CONFIRMED,
+      description: 'Assicurazione viaggio con annullamento — 2 pax — 15 giorni',
+      caseId: travelCase.id, clientId: clientIds[0],
+      supplierName: 'Allianz Travel', confirmationCode: 'ALZ-2025-0412',
+      serviceDate: new Date('2025-06-15'), serviceEndDate: new Date('2025-06-29'),
+      currency: 'EUR', amount: 240, cost: 160,
+      isPaidToSupplier: true, paidToSupplierAt: new Date('2025-05-01'),
+      numberOfPax: 2,
+      details: { type: 'Annullamento + Medico', coverage: '€50.000', validity: '15 giorni' },
+    },
+  ];
+
+  const bookingIds: string[] = [];
+  for (const b of bookingsData) {
+    const commissionAmount = b.commissionRate ? (b.cost * b.commissionRate) / 100 : 0;
+    const effectiveCost = b.cost - commissionAmount;
+    const marginAmount = b.amount - effectiveCost;
+    const marginPercent = b.amount > 0 ? (marginAmount / b.amount) * 100 : 0;
+
+    const booking = await prisma.booking.create({
+      data: {
+        tenantId: tenant.id, assignedToId: agentUser.id,
+        commissionAmount: parseFloat(commissionAmount.toFixed(2)),
+        marginAmount: parseFloat(marginAmount.toFixed(2)),
+        marginPercent: parseFloat(marginPercent.toFixed(2)),
+        ...b,
+      },
+    });
+    bookingIds.push(booking.id);
+  }
+
+  // Add voucher document to flight booking
+  await prisma.bookingDocument.create({
+    data: {
+      tenantId: tenant.id, bookingId: bookingIds[0],
+      type: DocumentType.TICKET,
+      name: 'E-Ticket AZ001 — Ferrari Giuseppe e Maria',
+      fileUrl: 'https://storage.example.com/tickets/AZ001-250615-FERRARI.pdf',
+      mimeType: 'application/pdf', sizeBytes: 245678,
+      notes: 'Biglietti elettronici — stampare prima del volo',
+      uploadedById: agentUser.id,
+    },
+  });
+
+  await prisma.bookingDocument.create({
+    data: {
+      tenantId: tenant.id, bookingId: bookingIds[1],
+      type: DocumentType.VOUCHER,
+      name: 'Voucher Conrad Maldives Rangali Island',
+      fileUrl: 'https://storage.example.com/vouchers/CNR-45872-MV.pdf',
+      mimeType: 'application/pdf', sizeBytes: 189034,
+      uploadedById: agentUser.id,
+    },
+  });
+
+  console.log(`   ✓ ${bookingsData.length} bookings (volo, hotel, transfer, assicurazione) + 2 documenti`);
 
   console.log('\n✅ Seed completed!\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

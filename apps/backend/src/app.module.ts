@@ -16,6 +16,7 @@ import { HealthModule } from './health/health.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { TravelCasesModule } from './modules/travel-cases/travel-cases.module';
+import { BookingsRootModule } from './modules/bookings/bookings-root.module';
 
 @Module({
   imports: [
@@ -63,6 +64,9 @@ import { TravelCasesModule } from './modules/travel-cases/travel-cases.module';
 
     // Travel Cases
     TravelCasesModule,
+
+    // Bookings
+    BookingsRootModule,
 
     // Health check
     HealthModule,
