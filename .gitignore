@@ -47,3 +47,4 @@ storage/exports/*
 storage/imports/*
 storage/temp/*
 !storage/**/.gitkeep
+pnpm-lock.yaml
