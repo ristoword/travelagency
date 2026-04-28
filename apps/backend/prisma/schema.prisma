@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1: Foundation | FASE 2: CRM
+// FASE 1: Foundation | FASE 2: CRM | FASE 3: Sales
 // =============================================================================
 
 generator client {
@@ -162,12 +162,15 @@ model Tenant {
   roles          Role[]
   auditLogs      AuditLog[]
   settings       TenantSetting[]
-  clients        Client[]
-  leads          Lead[]
-  contacts       Contact[]
-  tags           Tag[]
-  customerNotes  CustomerNote[]
+  clients         Client[]
+  leads           Lead[]
+  contacts        Contact[]
+  tags            Tag[]
+  customerNotes   CustomerNote[]
   customerHistory CustomerHistory[]
+  opportunities   Opportunity[]
+  quotations      Quotation[]
+  proposals       Proposal[]
 
   @@map("tenants")
 }
@@ -199,11 +202,13 @@ model User {
   updatedAt           DateTime   @updatedAt
   deletedAt           DateTime?
 
-  userRoles       UserRole[]
-  auditLogs       AuditLog[]
-  assignedClients Client[]         @relation("ClientAssignedTo")
-  assignedLeads   Lead[]           @relation("LeadAssignedTo")
-  customerNotes   CustomerNote[]
+  userRoles            UserRole[]
+  auditLogs            AuditLog[]
+  assignedClients      Client[]        @relation("ClientAssignedTo")
+  assignedLeads        Lead[]          @relation("LeadAssignedTo")
+  customerNotes        CustomerNote[]
+  assignedOpportunities Opportunity[]  @relation("OpportunityAssignedTo")
+  assignedQuotations   Quotation[]     @relation("QuotationAssignedTo")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -373,6 +378,8 @@ model Client {
   history                CustomerHistory[]
   tags                   ClientTag[]
   leads                  Lead[]
+  opportunities          Opportunity[]
+  quotations             Quotation[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -428,9 +435,11 @@ model Lead {
   updatedAt      DateTime     @updatedAt
   deletedAt      DateTime?
 
-  notes          CustomerNote[]  @relation("LeadNotes")
+  notes          CustomerNote[]    @relation("LeadNotes")
   history        CustomerHistory[] @relation("LeadHistory")
   tags           LeadTag[]
+  opportunities  Opportunity[]
+  quotations     Quotation[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -593,4 +602,232 @@ model CustomerHistory {
   @@index([leadId])
   @@index([eventDate])
   @@map("customer_history")
+}
+
+// =============================================================================
+// ENUMS — FASE 3 SALES
+// =============================================================================
+
+enum OpportunityStage {
+  PROSPECTING
+  QUALIFICATION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+enum QuotationItemType {
+  FLIGHT
+  HOTEL
+  PACKAGE
+  CRUISE
+  TRAIN
+  FERRY
+  CAR_RENTAL
+  TRANSFER
+  EXCURSION
+  INSURANCE
+  VISA
+  TICKET
+  OTHER
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+}
+
+// =============================================================================
+// FASE 3: OPPORTUNITIES
+// =============================================================================
+
+model Opportunity {
+  id                String           @id @default(uuid())
+  tenantId          String
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  clientId          String?
+  client            Client?          @relation(fields: [clientId], references: [id])
+  leadId            String?
+  lead              Lead?            @relation(fields: [leadId], references: [id])
+
+  title             String
+  description       String?
+  stage             OpportunityStage @default(PROSPECTING)
+  probability       Int              @default(20)
+  estimatedValue    Decimal?         @db.Decimal(12, 2)
+  currency          String           @default("EUR")
+  expectedCloseDate DateTime?
+
+  assignedToId      String?
+  assignedTo        User?            @relation("OpportunityAssignedTo", fields: [assignedToId], references: [id])
+
+  lostReason        String?
+  notes             String?
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
+
+  quotations        Quotation[]
+
+  @@index([tenantId])
+  @@index([tenantId, stage])
+  @@index([tenantId, assignedToId])
+  @@map("opportunities")
+}
+
+// =============================================================================
+// FASE 3: QUOTATIONS (Preventivi)
+// =============================================================================
+
+model Quotation {
+  id              String          @id @default(uuid())
+  tenantId        String
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  number          String
+  status          QuotationStatus @default(DRAFT)
+
+  clientId        String?
+  client          Client?         @relation(fields: [clientId], references: [id])
+  leadId          String?
+  lead            Lead?           @relation(fields: [leadId], references: [id])
+  opportunityId   String?
+  opportunity     Opportunity?    @relation(fields: [opportunityId], references: [id])
+
+  // Travel details
+  destination     String?
+  departureDate   DateTime?
+  returnDate      DateTime?
+  numberOfPeople  Int?
+  travelType      String?
+
+  // Financial
+  currency        String          @default("EUR")
+  subtotal        Decimal         @default(0) @db.Decimal(12, 2)
+  discountType    String?         // "percentage" | "fixed"
+  discountValue   Decimal?        @db.Decimal(10, 2)
+  discountAmount  Decimal         @default(0) @db.Decimal(10, 2)
+  totalAmount     Decimal         @default(0) @db.Decimal(12, 2)
+  totalCost       Decimal         @default(0) @db.Decimal(12, 2)
+  totalMargin     Decimal         @default(0) @db.Decimal(12, 2)
+  marginPercent   Decimal         @default(0) @db.Decimal(5, 2)
+
+  // Dates
+  validUntil      DateTime?
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  convertedAt     DateTime?
+
+  // Content
+  clientNotes     String?
+  internalNotes   String?
+  terms           String?
+
+  assignedToId    String?
+  assignedTo      User?           @relation("QuotationAssignedTo", fields: [assignedToId], references: [id])
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  items           QuotationItem[]
+  proposal        Proposal?
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, clientId])
+  @@index([tenantId, leadId])
+  @@map("quotations")
+}
+
+// =============================================================================
+// FASE 3: QUOTATION ITEMS
+// =============================================================================
+
+model QuotationItem {
+  id                String            @id @default(uuid())
+  quotationId       String
+  quotation         Quotation         @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  tenantId          String
+
+  type              QuotationItemType @default(OTHER)
+  description       String
+  details           String?
+  quantity          Int               @default(1)
+  unitPrice         Decimal           @db.Decimal(10, 2)
+  totalPrice        Decimal           @db.Decimal(12, 2)
+  supplierCost      Decimal           @default(0) @db.Decimal(10, 2)
+  totalCost         Decimal           @default(0) @db.Decimal(12, 2)
+  marginAmount      Decimal           @default(0) @db.Decimal(10, 2)
+  marginPercent     Decimal           @default(0) @db.Decimal(5, 2)
+
+  supplierId        String?
+  supplierRef       String?
+  notes             String?
+  sortOrder         Int               @default(0)
+
+  @@index([quotationId])
+  @@index([tenantId])
+  @@map("quotation_items")
+}
+
+// =============================================================================
+// FASE 3: PROPOSALS
+// =============================================================================
+
+model Proposal {
+  id          String         @id @default(uuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotationId String         @unique
+  quotation   Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  title       String
+  content     String
+  status      ProposalStatus @default(DRAFT)
+  sentAt      DateTime?
+  viewedAt    DateTime?
+  acceptedAt  DateTime?
+  rejectedAt  DateTime?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([tenantId])
+  @@map("proposals")
+}
+
+// =============================================================================
+// FASE 3: SEQUENCE COUNTER (for auto-numbering quotations)
+// =============================================================================
+
+model SequenceCounter {
+  id        String   @id @default(uuid())
+  tenantId  String
+  type      String
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, type, year])
+  @@map("sequence_counters")
 }

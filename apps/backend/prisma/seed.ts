@@ -11,6 +11,10 @@ import {
   TagType,
   NoteType,
   HistoryEventType,
+  OpportunityStage,
+  QuotationStatus,
+  QuotationItemType,
+  ProposalStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -466,6 +470,197 @@ async function main() {
     skipDuplicates: true,
   });
   console.log('\n⚙️  Client preferences created');
+
+  // ── FASE 3: Opportunities ──────────────────
+  console.log('\n💼 Creating demo opportunities...');
+  const opp1 = await prisma.opportunity.create({
+    data: {
+      tenantId: tenant.id,
+      title: 'Viaggio Maldive - Coppia Ferrari',
+      stage: OpportunityStage.PROPOSAL,
+      probability: 75,
+      estimatedValue: 8000,
+      currency: 'EUR',
+      expectedCloseDate: new Date('2025-05-30'),
+      clientId: clientIds[0],
+      assignedToId: agentUser.id,
+      notes: 'Cliente molto interessato, ha già scelto il resort',
+    },
+  });
+  const opp2 = await prisma.opportunity.create({
+    data: {
+      tenantId: tenant.id,
+      title: 'New York Natale - Famiglia Conti',
+      stage: OpportunityStage.QUALIFICATION,
+      probability: 50,
+      estimatedValue: 6000,
+      currency: 'EUR',
+      expectedCloseDate: new Date('2025-09-01'),
+      clientId: clientIds[1],
+      assignedToId: agentUser.id,
+    },
+  });
+  console.log('   ✓ 2 opportunities');
+
+  // ── FASE 3: Quotations ─────────────────────
+  console.log('\n📋 Creating demo quotations...');
+
+  // Quotation 1 — Maldive (ACCEPTED)
+  const q1Items = [
+    { type: QuotationItemType.FLIGHT, description: 'Volo A/R Roma→Malé, Business Class', quantity: 2, unitPrice: 1800, supplierCost: 1400, sortOrder: 1 },
+    { type: QuotationItemType.HOTEL, description: 'Conrad Maldives Rangali Island — 14 notti, Suite Ocean', quantity: 1, unitPrice: 7200, supplierCost: 5400, sortOrder: 2 },
+    { type: QuotationItemType.TRANSFER, description: 'Idrovolante Malé → resort A/R per 2 persone', quantity: 1, unitPrice: 600, supplierCost: 420, sortOrder: 3 },
+    { type: QuotationItemType.INSURANCE, description: 'Assicurazione viaggio con annullamento', quantity: 2, unitPrice: 120, supplierCost: 80, sortOrder: 4 },
+  ];
+
+  const q1Subtotal = q1Items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const q1Cost = q1Items.reduce((s, i) => s + i.supplierCost * i.quantity, 0);
+  const q1Total = q1Subtotal;
+  const q1Margin = q1Total - q1Cost;
+
+  await prisma.sequenceCounter.upsert({
+    where: { tenantId_type_year: { tenantId: tenant.id, type: 'quotation', year: 2025 } },
+    create: { tenantId: tenant.id, type: 'quotation', year: 2025, lastValue: 1 },
+    update: {},
+  });
+
+  const quot1 = await prisma.quotation.create({
+    data: {
+      tenantId: tenant.id,
+      number: 'PRV-2025-0001',
+      status: QuotationStatus.ACCEPTED,
+      clientId: clientIds[0],
+      opportunityId: opp1.id,
+      destination: 'Maldive',
+      departureDate: new Date('2025-06-15'),
+      returnDate: new Date('2025-06-29'),
+      numberOfPeople: 2,
+      travelType: 'honeymoon',
+      currency: 'EUR',
+      subtotal: q1Subtotal,
+      totalAmount: q1Total,
+      totalCost: q1Cost,
+      totalMargin: q1Margin,
+      marginPercent: parseFloat(((q1Margin / q1Total) * 100).toFixed(2)),
+      discountAmount: 0,
+      validUntil: new Date('2025-05-15'),
+      sentAt: new Date('2025-04-20'),
+      acceptedAt: new Date('2025-04-25'),
+      clientNotes: 'Preventivo personalizzato per il vostro viaggio di nozze alle Maldive.',
+      terms: 'Validità 30 giorni. Prezzi soggetti a disponibilità al momento della conferma.',
+      assignedToId: agentUser.id,
+      items: {
+        create: q1Items.map(i => ({
+          tenantId: tenant.id,
+          type: i.type,
+          description: i.description,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          totalPrice: i.unitPrice * i.quantity,
+          supplierCost: i.supplierCost,
+          totalCost: i.supplierCost * i.quantity,
+          marginAmount: (i.unitPrice - i.supplierCost) * i.quantity,
+          marginPercent: parseFloat((((i.unitPrice - i.supplierCost) / i.unitPrice) * 100).toFixed(2)),
+          sortOrder: i.sortOrder,
+        })),
+      },
+    },
+  });
+
+  // Quotation 2 — New York (SENT)
+  const q2Items = [
+    { type: QuotationItemType.FLIGHT, description: 'Volo A/R Roma→New York JFK, Economy', quantity: 4, unitPrice: 780, supplierCost: 590, sortOrder: 1 },
+    { type: QuotationItemType.HOTEL, description: 'Marriott Times Square — 10 notti, Camera Family', quantity: 1, unitPrice: 3200, supplierCost: 2400, sortOrder: 2 },
+    { type: QuotationItemType.EXCURSION, description: 'Tour NYC guidato + Staten Island Ferry', quantity: 1, unitPrice: 360, supplierCost: 200, sortOrder: 3 },
+    { type: QuotationItemType.INSURANCE, description: 'Assicurazione famiglia con medico', quantity: 4, unitPrice: 85, supplierCost: 55, sortOrder: 4 },
+  ];
+  const q2Sub = q2Items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const q2Cost = q2Items.reduce((s, i) => s + i.supplierCost * i.quantity, 0);
+  const q2Discount = q2Sub * 0.05;
+  const q2Total = q2Sub - q2Discount;
+  const q2Margin = q2Total - q2Cost;
+
+  const quot2 = await prisma.quotation.create({
+    data: {
+      tenantId: tenant.id,
+      number: 'PRV-2025-0002',
+      status: QuotationStatus.SENT,
+      clientId: clientIds[1],
+      opportunityId: opp2.id,
+      destination: 'New York',
+      departureDate: new Date('2025-12-20'),
+      returnDate: new Date('2025-12-30'),
+      numberOfPeople: 4,
+      travelType: 'family',
+      currency: 'EUR',
+      subtotal: q2Sub,
+      discountType: 'percentage',
+      discountValue: 5,
+      discountAmount: q2Discount,
+      totalAmount: q2Total,
+      totalCost: q2Cost,
+      totalMargin: q2Margin,
+      marginPercent: parseFloat(((q2Margin / q2Total) * 100).toFixed(2)),
+      validUntil: new Date('2025-06-01'),
+      sentAt: new Date(),
+      clientNotes: 'Preventivo per la vostra vacanza di Natale a New York. Sconto del 5% incluso.',
+      assignedToId: agentUser.id,
+      items: {
+        create: q2Items.map(i => ({
+          tenantId: tenant.id,
+          type: i.type,
+          description: i.description,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          totalPrice: i.unitPrice * i.quantity,
+          supplierCost: i.supplierCost,
+          totalCost: i.supplierCost * i.quantity,
+          marginAmount: (i.unitPrice - i.supplierCost) * i.quantity,
+          marginPercent: parseFloat((((i.unitPrice - i.supplierCost) / i.unitPrice) * 100).toFixed(2)),
+          sortOrder: i.sortOrder,
+        })),
+      },
+    },
+  });
+
+  // Quotation 3 — Draft
+  await prisma.quotation.create({
+    data: {
+      tenantId: tenant.id,
+      number: 'PRV-2025-0003',
+      status: QuotationStatus.DRAFT,
+      destination: 'Giappone',
+      departureDate: new Date('2025-04-01'),
+      returnDate: new Date('2025-04-15'),
+      numberOfPeople: 2,
+      travelType: 'culture',
+      currency: 'EUR',
+      subtotal: 0, totalAmount: 0, totalCost: 0,
+      totalMargin: 0, marginPercent: 0, discountAmount: 0,
+      assignedToId: agentUser.id,
+    },
+  });
+
+  await prisma.sequenceCounter.update({
+    where: { tenantId_type_year: { tenantId: tenant.id, type: 'quotation', year: 2025 } },
+    data: { lastValue: 3 },
+  });
+
+  console.log('   ✓ 3 quotations (PRV-2025-0001 accepted, PRV-2025-0002 sent, PRV-2025-0003 draft)');
+
+  // Proposal for quot1
+  await prisma.proposal.create({
+    data: {
+      tenantId: tenant.id,
+      quotationId: quot1.id,
+      title: 'La vostra luna di miele alle Maldive',
+      content: `# Benvenuti nella vostra avventura!\n\nAbbiamo il piacere di presentarvi questa proposta esclusiva per il vostro viaggio di nozze alle Maldive.\n\n## Cosa include\n- Voli Business Class\n- 14 notti al Conrad Maldives\n- Trasferimento in idrovolante\n- Assicurazione completa\n\n## Il resort\nIl Conrad Maldives Rangali Island è considerato uno dei migliori resort al mondo...`,
+      status: ProposalStatus.ACCEPTED,
+      sentAt: new Date('2025-04-20'),
+      acceptedAt: new Date('2025-04-25'),
+    },
+  });
+  console.log('   ✓ 1 proposal (accepted)');
 
   console.log('\n✅ Seed completed!\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

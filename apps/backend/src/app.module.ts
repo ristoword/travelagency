@@ -14,6 +14,7 @@ import { AuditLogModule } from './core/audit-log/audit-log.module';
 import { SettingsModule } from './core/settings/settings.module';
 import { HealthModule } from './health/health.module';
 import { CrmModule } from './modules/crm/crm.module';
+import { SalesModule } from './modules/sales/sales.module';
 
 @Module({
   imports: [
@@ -55,6 +56,9 @@ import { CrmModule } from './modules/crm/crm.module';
 
     // CRM
     CrmModule,
+
+    // Sales
+    SalesModule,
 
     // Health check
     HealthModule,
