@@ -27,7 +27,7 @@ COPY apps/backend/package.json ./apps/backend/
 RUN pnpm install --filter @travel-agency/backend --prod
 
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /app/apps/backend/node_modules/.prisma ./apps/backend/node_modules/.prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY apps/backend/prisma ./apps/backend/prisma
 
 WORKDIR /app/apps/backend
