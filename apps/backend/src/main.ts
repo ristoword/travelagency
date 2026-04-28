@@ -14,7 +14,8 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('app.port') || 3000;
+  // Railway injects PORT automatically — always read from process.env.PORT first
+  const port = parseInt(process.env.PORT || '') || configService.get<number>('app.port') || 3000;
   const nodeEnv = configService.get<string>('app.nodeEnv');
   const frontendUrl = configService.get<string>('app.frontendUrl');
 
