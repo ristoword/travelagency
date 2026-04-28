@@ -1,0 +1,224 @@
+// =============================================================================
+// TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
+// FASE 1: Foundation (Tenant, User, Role, Permission, AuditLog, Settings)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum TenantPlan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_CHANGE
+  PERMISSION_CHANGE
+  EXPORT
+  IMPORT
+}
+
+// =============================================================================
+// TENANTS
+// Multi-tenant row-level isolation: every model includes tenantId
+// =============================================================================
+
+model Tenant {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  country     String?    @default("IT")
+  vatNumber   String?
+  logoUrl     String?
+  plan        TenantPlan @default(STARTER)
+  isActive    Boolean    @default(true)
+  trialEndsAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  users          User[]
+  roles          Role[]
+  auditLogs      AuditLog[]
+  settings       TenantSetting[]
+
+  @@map("tenants")
+}
+
+// =============================================================================
+// USERS
+// =============================================================================
+
+model User {
+  id                  String     @id @default(uuid())
+  tenantId            String
+  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email               String
+  password            String
+  firstName           String
+  lastName            String
+  phone               String?
+  avatarUrl           String?
+  status              UserStatus @default(ACTIVE)
+  isEmailVerified     Boolean    @default(false)
+  emailVerifiedAt     DateTime?
+  refreshToken        String?
+  lastLoginAt         DateTime?
+  lastLoginIp         String?
+  passwordChangedAt   DateTime?
+  failedLoginAttempts Int        @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  deletedAt           DateTime?
+
+  userRoles UserRole[]
+  auditLogs AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@map("users")
+}
+
+// =============================================================================
+// ROLES
+// =============================================================================
+
+model Role {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+// =============================================================================
+// PERMISSIONS
+// resource = "clients" | "leads" | "bookings" | ...
+// action   = "create"  | "read"  | "update"   | "delete" | "export" | ...
+// =============================================================================
+
+model Permission {
+  id          String  @id @default(uuid())
+  resource    String
+  action      String
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+// =============================================================================
+// JOIN TABLES
+// =============================================================================
+
+model UserRole {
+  userId     String
+  roleId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// =============================================================================
+// AUDIT LOG
+// Complete traceability of all actions in the system
+// =============================================================================
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  tenantId   String
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  action     AuditAction
+  resource   String
+  resourceId String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// TENANT SETTINGS
+// Key-value store for tenant-specific configuration
+// =============================================================================
+
+model TenantSetting {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@map("tenant_settings")
+}

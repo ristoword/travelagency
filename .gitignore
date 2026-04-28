@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+.turbo/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+
+# Prisma
+*.db
+*.db-journal
+
+# Uploads / Storage (local dev)
+storage/documents/*
+storage/passports/*
+storage/contracts/*
+storage/invoices/*
+storage/vouchers/*
+storage/tickets/*
+storage/images/*
+storage/exports/*
+storage/imports/*
+storage/temp/*
+!storage/**/.gitkeep
