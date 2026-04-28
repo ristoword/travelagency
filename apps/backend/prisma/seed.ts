@@ -31,6 +31,10 @@ import {
   ClientDocumentStatus,
   TemplateType,
   TemplateFormat,
+  SupplierType,
+  SupplierStatus,
+  ContractStatus,
+  CommissionType,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -1166,6 +1170,157 @@ h1{color:#1a56db}.day{border-left:4px solid #1a56db;padding-left:15px;margin:20p
     skipDuplicates: true,
   });
   console.log('   ✓ 3 document templates (Fattura, Preventivo, Itinerario)');
+
+  // ── FASE 9: Suppliers ──────────────────────
+  console.log('\n🏢 Creating demo suppliers...');
+
+  const suppliersData = [
+    {
+      type: SupplierType.AIRLINE,
+      name: 'ITA Airways',
+      legalName: 'Italia Trasporto Aereo S.p.A.',
+      code: 'AZ',
+      country: 'IT',
+      email: 'agency@ita-airways.com',
+      phone: '+39 06 65649',
+      website: 'https://www.ita-airways.com',
+      contactPerson: 'Marco Bianchi',
+      contactEmail: 'marco.bianchi@ita-airways.com',
+      defaultCommissionRate: 7,
+      paymentTermsDays: 30,
+      qualityScore: 4.2,
+      reliabilityScore: 4.0,
+      priceScore: 3.8,
+      overallScore: 4.0,
+      isPreferred: true,
+      status: SupplierStatus.ACTIVE,
+    },
+    {
+      type: SupplierType.HOTEL_CHAIN,
+      name: 'Conrad Hotels & Resorts',
+      legalName: 'Hilton Worldwide Holdings Inc.',
+      code: 'CNR',
+      country: 'US',
+      email: 'agency@hilton.com',
+      phone: '+1 800 321 3232',
+      website: 'https://www.hilton.com/en/brands/conrad-hotels',
+      contactPerson: 'Sarah Johnson',
+      contactEmail: 's.johnson@hilton.com',
+      defaultCommissionRate: 10,
+      paymentTermsDays: 45,
+      qualityScore: 4.8,
+      reliabilityScore: 4.7,
+      priceScore: 3.5,
+      overallScore: 4.3,
+      isPreferred: true,
+      status: SupplierStatus.ACTIVE,
+    },
+    {
+      type: SupplierType.INSURANCE_COMPANY,
+      name: 'Allianz Travel',
+      legalName: 'Allianz Global Assistance',
+      code: 'ALZ',
+      country: 'DE',
+      email: 'partners@allianz-travel.it',
+      phone: '+39 02 2700 8888',
+      website: 'https://www.allianz-travel.it',
+      defaultCommissionRate: 20,
+      paymentTermsDays: 60,
+      qualityScore: 4.5,
+      reliabilityScore: 4.6,
+      priceScore: 4.2,
+      overallScore: 4.4,
+      isPreferred: true,
+      status: SupplierStatus.ACTIVE,
+    },
+    {
+      type: SupplierType.TRANSFER_COMPANY,
+      name: 'Trans Maldivian Airways',
+      code: 'TMA',
+      country: 'MV',
+      email: 'trade@transmaldivian.com',
+      website: 'https://www.transmaldivian.com',
+      defaultCommissionRate: 12,
+      paymentTermsDays: 30,
+      qualityScore: 4.3,
+      reliabilityScore: 4.1,
+      priceScore: 3.9,
+      overallScore: 4.1,
+      isPreferred: false,
+      status: SupplierStatus.ACTIVE,
+    },
+    {
+      type: SupplierType.TOUR_OPERATOR,
+      name: 'Alpitour World',
+      legalName: 'Alpitour S.p.A.',
+      code: 'ALT',
+      country: 'IT',
+      city: 'Torino',
+      email: 'agenzie@alpitour.it',
+      phone: '+39 011 5631 800',
+      website: 'https://www.alpitour.it',
+      defaultCommissionRate: 12,
+      paymentTermsDays: 30,
+      qualityScore: 4.1,
+      reliabilityScore: 4.0,
+      priceScore: 4.2,
+      overallScore: 4.1,
+      isPreferred: false,
+      status: SupplierStatus.ACTIVE,
+    },
+  ];
+
+  const createdSuppliers: Record<string, string> = {};
+  for (const s of suppliersData) {
+    const supplier = await prisma.supplier.create({ data: { tenantId: tenant.id, ...s } });
+    createdSuppliers[s.code ?? s.name] = supplier.id;
+  }
+  console.log(`   ✓ ${suppliersData.length} fornitori (vettore, hotel chain, assicurazione, transfer, TO)`);
+
+  // Contract + Commissions for ITA Airways
+  const itaContract = await prisma.supplierContract.create({
+    data: {
+      tenantId: tenant.id,
+      supplierId: createdSuppliers['AZ'],
+      title: 'Accordo Commissioni ITA Airways 2025',
+      number: 'ITA-2025-001',
+      status: ContractStatus.ACTIVE,
+      startDate: new Date('2025-01-01'),
+      endDate: new Date('2025-12-31'),
+      autoRenew: true,
+      noticeDays: 60,
+      commissionRate: 7,
+      paymentTermsDays: 30,
+      currency: 'EUR',
+      notes: 'Commissione standard su biglietteria IATA. Aggiuntivo 2% su Business Class.',
+    },
+  });
+
+  await prisma.supplierCommission.createMany({
+    data: [
+      { tenantId: tenant.id, supplierId: createdSuppliers['AZ'], contractId: itaContract.id, type: CommissionType.PERCENTAGE, serviceType: 'FLIGHT_ECONOMY', rate: 7, currency: 'EUR', validFrom: new Date('2025-01-01') },
+      { tenantId: tenant.id, supplierId: createdSuppliers['AZ'], contractId: itaContract.id, type: CommissionType.OVERRIDE, serviceType: 'FLIGHT_BUSINESS', rate: 9, currency: 'EUR', validFrom: new Date('2025-01-01'), notes: 'Business Class +2%' },
+    ],
+  });
+
+  // Contract for Conrad Hotels
+  await prisma.supplierContract.create({
+    data: {
+      tenantId: tenant.id,
+      supplierId: createdSuppliers['CNR'],
+      title: 'Net Rate Agreement Conrad Hotels 2025',
+      status: ContractStatus.ACTIVE,
+      startDate: new Date('2025-01-01'),
+      endDate: new Date('2025-12-31'),
+      commissionRate: 10,
+      netRateDiscount: 15,
+      creditLimit: 50000,
+      paymentTermsDays: 45,
+      currency: 'EUR',
+    },
+  });
+
+  console.log('   ✓ 2 contratti + commissioni configurate');
 
   console.log('\n✅ Seed completed!\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

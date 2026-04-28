@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents
+// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents | 9: Suppliers
 // =============================================================================
 
 generator client {
@@ -178,6 +178,9 @@ model Tenant {
   creditNotes       CreditNote[]
   clientDocuments   ClientDocument[]
   documentTemplates DocumentTemplate[]
+  suppliers         Supplier[]
+  supplierContracts SupplierContract[]
+  supplierIssues    SupplierIssue[]
 
   @@map("tenants")
 }
@@ -1595,4 +1598,235 @@ model DocumentTemplate {
   @@index([tenantId])
   @@index([tenantId, type])
   @@map("document_templates")
+}
+
+// =============================================================================
+// ENUMS — FASE 9 SUPPLIERS
+// =============================================================================
+
+enum SupplierType {
+  AIRLINE
+  HOTEL_CHAIN
+  HOTEL_INDEPENDENT
+  TOUR_OPERATOR
+  CRUISE_LINE
+  TRAIN_OPERATOR
+  FERRY_OPERATOR
+  CAR_RENTAL
+  TRANSFER_COMPANY
+  EXCURSION_PROVIDER
+  INSURANCE_COMPANY
+  VISA_AGENCY
+  GDS
+  BEDBANK
+  OTHER
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BLACKLISTED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum CommissionType {
+  PERCENTAGE
+  FIXED
+  OVERRIDE
+}
+
+enum SupplierIssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SupplierIssuePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// =============================================================================
+// FASE 9: SUPPLIERS
+// =============================================================================
+
+model Supplier {
+  id              String         @id @default(uuid())
+  tenantId        String
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type            SupplierType
+  status          SupplierStatus @default(ACTIVE)
+  name            String
+  legalName       String?
+  code            String?
+  vatNumber       String?
+  country         String?        @default("IT")
+  address         String?
+  city            String?
+
+  // Contact
+  email           String?
+  phone           String?
+  website         String?
+  contactPerson   String?
+  contactEmail    String?
+  contactPhone    String?
+
+  // Commercial
+  defaultCommissionRate  Decimal? @db.Decimal(5, 2)
+  paymentTermsDays       Int?     @default(30)
+  currency               String   @default("EUR")
+
+  // Score (1-5)
+  qualityScore    Decimal?  @default(0) @db.Decimal(3, 1)
+  reliabilityScore Decimal? @default(0) @db.Decimal(3, 1)
+  priceScore      Decimal?  @default(0) @db.Decimal(3, 1)
+  overallScore    Decimal?  @default(0) @db.Decimal(3, 1)
+
+  internalNotes   String?
+  isPreferred     Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  contracts       SupplierContract[]
+  commissions     SupplierCommission[]
+  issues          SupplierIssue[]
+  contacts        SupplierContact[]
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@map("suppliers")
+}
+
+// =============================================================================
+// FASE 9: SUPPLIER CONTACTS
+// =============================================================================
+
+model SupplierContact {
+  id         String   @id @default(uuid())
+  tenantId   String
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  firstName  String
+  lastName   String
+  role       String?
+  email      String?
+  phone      String?
+  mobile     String?
+  isPrimary  Boolean  @default(false)
+  notes      String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId])
+  @@map("supplier_contacts")
+}
+
+// =============================================================================
+// FASE 9: SUPPLIER CONTRACTS
+// =============================================================================
+
+model SupplierContract {
+  id             String         @id @default(uuid())
+  tenantId       String
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId     String
+  supplier       Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  number         String?
+  status         ContractStatus @default(DRAFT)
+  title          String
+  description    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  autoRenew      Boolean        @default(false)
+  noticeDays     Int?           @default(30)
+
+  // Financial conditions
+  commissionRate Decimal?       @db.Decimal(5, 2)
+  netRateDiscount Decimal?      @db.Decimal(5, 2)
+  creditLimit    Decimal?       @db.Decimal(12, 2)
+  currency       String         @default("EUR")
+  paymentTermsDays Int?         @default(30)
+
+  fileUrl        String?
+  notes          String?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  commissions    SupplierCommission[]
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@index([endDate])
+  @@map("supplier_contracts")
+}
+
+// =============================================================================
+// FASE 9: SUPPLIER COMMISSIONS & NET RATES
+// =============================================================================
+
+model SupplierCommission {
+  id           String         @id @default(uuid())
+  tenantId     String
+  supplierId   String
+  supplier     Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  contractId   String?
+  contract     SupplierContract? @relation(fields: [contractId], references: [id])
+
+  type         CommissionType @default(PERCENTAGE)
+  serviceType  String?
+  rate         Decimal        @db.Decimal(8, 4)
+  currency     String         @default("EUR")
+  validFrom    DateTime?
+  validUntil   DateTime?
+  notes        String?
+
+  createdAt    DateTime       @default(now())
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@map("supplier_commissions")
+}
+
+// =============================================================================
+// FASE 9: SUPPLIER ISSUES
+// =============================================================================
+
+model SupplierIssue {
+  id          String                @id @default(uuid())
+  tenantId    String
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId  String
+  supplier    Supplier              @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  status      SupplierIssueStatus   @default(OPEN)
+  priority    SupplierIssuePriority @default(MEDIUM)
+  resolution  String?
+  resolvedAt  DateTime?
+
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@map("supplier_issues")
 }
