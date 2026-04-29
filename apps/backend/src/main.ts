@@ -34,8 +34,8 @@ async function bootstrap() {
   // API Versioning
   app.enableVersioning({ type: VersioningType.URI });
 
-  // Global prefix
-  app.setGlobalPrefix('api');
+  // Global prefix — exclude health so both /health and /api/health work
+  app.setGlobalPrefix('api', { exclude: ['health'] });
 
   // Global pipes
   app.useGlobalPipes(
