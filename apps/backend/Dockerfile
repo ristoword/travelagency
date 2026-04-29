@@ -20,7 +20,8 @@ COPY apps/backend ./apps/backend
 WORKDIR /app/apps/backend
 
 # Generate Prisma client and build TypeScript
-RUN pnpm prisma generate && pnpm build
+RUN pnpm prisma generate && pnpm build \
+    && if [ ! -f dist/main.js ]; then echo "ERROR: dist/main.js not found after build. Contents of dist/:"; ls -la dist/ 2>/dev/null || echo "(dist/ directory does not exist)"; exit 1; fi
 
 # Railway injects PORT automatically
 EXPOSE 3000
