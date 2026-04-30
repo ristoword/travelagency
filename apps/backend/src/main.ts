@@ -19,19 +19,23 @@ async function bootstrap() {
   const frontendUrl = configService.get<string>('app.frontendUrl');
   const appUrl = configService.get<string>('app.url') || `http://localhost:${port}`;
 
-  // Security
+  // Trust Railway's reverse proxy (needed for HTTPS detection)
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
+  // Security — disable policies that break Swagger UI
   app.use(
     helmet({
-      contentSecurityPolicy: false, // allow Swagger UI
+      contentSecurityPolicy: false,        // Swagger UI uses inline scripts
+      crossOriginEmbedderPolicy: false,    // Swagger UI loads external resources
+      crossOriginResourcePolicy: false,    // Allow cross-origin resource loading
+      crossOriginOpenerPolicy: false,      // Allow Swagger popups
     }),
   );
   app.use(compression());
 
-  // CORS — allow all origins in development, specific in production
+  // CORS — allow all origins (frontend can be on any domain)
   app.enableCors({
-    origin: nodeEnv === 'production'
-      ? [frontendUrl || '*', 'http://localhost:3001', 'http://localhost:5173']
-      : true,
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Slug'],
@@ -60,6 +64,8 @@ async function bootstrap() {
   // Swagger — sempre abilitato (utile in produzione per testare l'API)
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Travel Agency Management System — API')
+    .addServer('https://travel-management-production.up.railway.app', 'Production (Railway)')
+    .addServer('http://localhost:3000', 'Local development')
     .setDescription(
       `**Gestionale enterprise per agenzie di viaggio**\n\n` +
       `Fasi implementate: Foundation · CRM · Sales · Cases · Bookings · Accounting · Documents · Suppliers · Communications\n\n` +
