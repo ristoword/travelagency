@@ -26,5 +26,6 @@ RUN pnpm prisma generate && pnpm build \
 # Railway injects PORT automatically
 EXPOSE 3000
 
-# Run migrations then start the server
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/main"]
+# Push schema to DB (creates all tables) then start the server
+# prisma db push is used because no migration files exist yet
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --accept-data-loss && node dist/main"]
