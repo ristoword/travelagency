@@ -49,7 +49,7 @@ export class AnalyticsService {
       }),
       this.prisma.invoice.aggregate({
         where: { tenantId, deletedAt: null, issuedAt: { gte: startOfYear }, status: { notIn: ['DRAFT', 'CANCELLED'] } },
-        _sum: { totalAmount: true, totalCost: true },
+        _sum: { totalAmount: true },
       }),
       this.prisma.lead.count({ where: { tenantId, deletedAt: null } }),
       this.prisma.lead.count({ where: { tenantId, deletedAt: null, status: LeadStatus.WON } }),
@@ -67,16 +67,24 @@ export class AnalyticsService {
       }),
     ]);
 
-    const revenueThisMonth = Number(invoicesThisMonth._sum.totalAmount ?? 0);
-    const revenueLastMonth = Number(invoicesLastMonth._sum.totalAmount ?? 0);
+    const revenueThisMonth = Number(invoicesThisMonth._sum?.totalAmount ?? 0);
+    const revenueLastMonth = Number(invoicesLastMonth._sum?.totalAmount ?? 0);
     const revenueChange = revenueLastMonth > 0
       ? (((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100).toFixed(1)
       : null;
 
-    const revenueYTD = Number(invoicesYTD._sum.totalAmount ?? 0);
-    const costYTD = Number(invoicesYTD._sum.totalCost ?? 0);
-    const marginYTD = revenueYTD - costYTD;
-    const marginPercent = revenueYTD > 0 ? ((marginYTD / revenueYTD) * 100).toFixed(1) : '0';
+    const revenueYTD = Number(invoicesYTD._sum?.totalAmount ?? 0);
+
+    // Margins come from quotations (invoices don't store cost)
+    const quotationMarginYTD = await this.prisma.quotation.aggregate({
+      where: { tenantId, deletedAt: null, status: { in: ['ACCEPTED', 'CONVERTED'] } },
+      _sum: { totalMargin: true },
+      _avg: { marginPercent: true },
+    });
+    const marginYTD = Number(quotationMarginYTD._sum?.totalMargin ?? 0);
+    const marginPercent = quotationMarginYTD._avg?.marginPercent
+      ? Number(quotationMarginYTD._avg.marginPercent).toFixed(1)
+      : '0';
 
     return {
       revenue: {
@@ -108,7 +116,7 @@ export class AnalyticsService {
       alerts: {
         bookingsPending,
         overdueInvoices: invoicesOverdue._count,
-        overdueAmount: Number(invoicesOverdue._sum.balanceDue ?? 0),
+        overdueAmount: Number(invoicesOverdue._sum?.balanceDue ?? 0),
       },
     };
   }
@@ -129,7 +137,7 @@ export class AnalyticsService {
       }),
       this.prisma.invoice.findMany({
         where: { tenantId, deletedAt: null, issuedAt: { gte: from }, status: { notIn: ['DRAFT', 'CANCELLED'] } },
-        select: { issuedAt: true, totalAmount: true, totalCost: true },
+        select: { issuedAt: true, totalAmount: true },
         orderBy: { issuedAt: 'asc' },
       }),
       this.prisma.quotation.groupBy({
@@ -159,11 +167,7 @@ export class AnalyticsService {
     const monthlyRevenue = this.groupByMonth(
       revenueByMonth,
       (inv) => inv.issuedAt!,
-      (inv) => ({
-        revenue: Number(inv.totalAmount),
-        cost: Number(inv.totalCost ?? 0),
-        margin: Number(inv.totalAmount) - Number(inv.totalCost ?? 0),
-      }),
+      (inv) => ({ revenue: Number(inv.totalAmount) }),
     );
 
     return { quotationsByStatus, monthlyRevenue, topDestinations, topAgents, conversionFunnel };
