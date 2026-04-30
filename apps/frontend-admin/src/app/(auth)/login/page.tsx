@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MapPin, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Plane, Globe, TrendingUp, Users, FileText, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
@@ -15,110 +15,207 @@ const schema = z.object({
   password: z.string().min(6, 'Minimo 6 caratteri'),
   tenantSlug: z.string().min(1, 'Inserisci il codice agenzia'),
 });
-
 type FormData = z.infer<typeof schema>;
+
+const features = [
+  { icon: Users, label: 'CRM Clienti', desc: 'Gestisci lead, clienti e pratiche' },
+  { icon: FileText, label: 'Preventivi', desc: 'Calcolo automatico margini' },
+  { icon: Plane, label: 'Prenotazioni', desc: 'Voli, hotel, transfer e molto altro' },
+  { icon: TrendingUp, label: 'Analytics', desc: 'KPI, dashboard e previsioni' },
+];
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading } = useAuthStore();
-  const [showPassword, setShowPassword] = useState(false);
+  const [show, setShow] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      tenantSlug: process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG ?? 'demo-agenzia',
-    },
+    defaultValues: { tenantSlug: 'demo-agenzia' },
   });
 
   const onSubmit = async (data: FormData) => {
     try {
       await login(data.email, data.password, data.tenantSlug);
-      toast.success('Accesso effettuato');
+      toast.success('Benvenuto!');
       router.push('/dashboard');
-    } catch (error: unknown) {
-      const msg = (error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
-      toast.error(msg ?? 'Credenziali non valide');
+    } catch {
+      toast.error('Credenziali non valide — riprova');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-4">
-            <MapPin size={32} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Travel Agency</h1>
-          <p className="text-slate-400 text-sm mt-1">Sistema Gestionale</p>
-        </div>
+    <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">Accedi al pannello</h2>
-          <p className="text-gray-500 text-sm mb-6">Inserisci le tue credenziali per continuare</p>
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-[55%] flex-col relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d1f42 50%, #0a1628 100%)' }}>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Animated grid background */}
+        <div className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(99,102,241,0.6) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+
+        {/* Glow orbs */}
+        <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full opacity-10 blur-3xl"
+          style={{ background: 'radial-gradient(circle, #3b82f6, transparent)' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8 blur-3xl"
+          style={{ background: 'radial-gradient(circle, #8b5cf6, transparent)' }} />
+
+        <div className="relative z-10 flex flex-col h-full p-12">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-16">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center glow-blue"
+              style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
+              <Globe size={20} className="text-white" />
+            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Codice Agenzia</label>
-              <input
-                {...register('tenantSlug')}
-                type="text"
-                placeholder="es: demo-agenzia"
-                className={cn('w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors',
-                  errors.tenantSlug ? 'border-red-400' : 'border-gray-300')}
-              />
-              {errors.tenantSlug && <p className="text-red-500 text-xs mt-1">{errors.tenantSlug.message}</p>}
+              <p className="text-white font-bold text-lg leading-none">TravelAgency</p>
+              <p className="text-xs" style={{ color: 'var(--text-2)' }}>Management System</p>
+            </div>
+          </div>
+
+          {/* Hero */}
+          <div className="flex-1 flex flex-col justify-center">
+            <div className="mb-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium w-fit"
+              style={{ borderColor: 'rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.08)', color: '#818cf8' }}>
+              <Star size={10} className="fill-current" />
+              Il gestionale per agenzie di viaggio
             </div>
 
+            <h1 className="text-5xl font-bold text-white leading-tight mb-4">
+              Gestisci la tua<br />
+              <span className="text-gradient">agenzia viaggi</span><br />
+              in un unico posto
+            </h1>
+
+            <p className="text-lg mb-10 leading-relaxed" style={{ color: 'var(--text-2)' }}>
+              CRM, preventivi, prenotazioni, contabilità e analytics
+              tutto integrato. Per agenzie moderne.
+            </p>
+
+            {/* Feature list */}
+            <div className="grid grid-cols-2 gap-3">
+              {features.map(({ icon: Icon, label, desc }) => (
+                <div key={label} className="flex items-start gap-3 p-3 rounded-xl border"
+                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background: 'rgba(59,130,246,0.15)' }}>
+                    <Icon size={14} className="text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-medium leading-none mb-0.5">{label}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-3)' }}>{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom stats */}
+          <div className="flex gap-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
+            {[['10+', 'Moduli'], ['200+', 'Endpoint API'], ['40+', 'Modelli DB']].map(([n, l]) => (
+              <div key={l}>
+                <p className="text-2xl font-bold text-white">{n}</p>
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>{l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel — login form */}
+      <div className="flex-1 flex items-center justify-center p-8" style={{ background: 'var(--bg-primary)' }}>
+        <div className="w-full max-w-md">
+
+          {/* Mobile logo */}
+          <div className="flex items-center gap-3 mb-8 lg:hidden">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
+              <Globe size={18} className="text-white" />
+            </div>
+            <p className="text-white font-bold">TravelAgency</p>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-1">Benvenuto</h2>
+            <p style={{ color: 'var(--text-2)' }} className="text-sm">Accedi al pannello di gestione</p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Tenant */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-2)' }}>
+                Codice Agenzia
+              </label>
+              <input
+                {...register('tenantSlug')}
+                placeholder="es: demo-agenzia"
+                className="input-dark w-full"
+              />
+              {errors.tenantSlug && <p className="text-red-400 text-xs mt-1">{errors.tenantSlug.message}</p>}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-2)' }}>
+                Email
+              </label>
               <input
                 {...register('email')}
                 type="email"
                 placeholder="admin@demo-agenzia.it"
-                className={cn('w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  errors.email ? 'border-red-400' : 'border-gray-300')}
+                className="input-dark w-full"
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>Password</label>
+                <button type="button" className="text-xs text-blue-400 hover:text-blue-300">
+                  Password dimenticata?
+                </button>
+              </div>
               <div className="relative">
                 <input
                   {...register('password')}
-                  type={showPassword ? 'text' : 'password'}
+                  type={show ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className={cn('w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10',
-                    errors.password ? 'border-red-400' : 'border-gray-300')}
+                  className="input-dark w-full pr-10"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <button type="button" onClick={() => setShow(!show)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--text-3)' }}>
+                  {show ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+              {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {isLoading && <Loader2 size={16} className="animate-spin" />}
-              {isLoading ? 'Accesso in corso...' : 'Accedi'}
+            {/* Submit */}
+            <button type="submit" disabled={isLoading}
+              className="w-full btn-primary flex items-center justify-center gap-2 mt-6 py-3 glow-blue disabled:opacity-50 disabled:cursor-not-allowed">
+              {isLoading && <Loader2 size={15} className="animate-spin" />}
+              {isLoading ? 'Accesso in corso...' : 'Accedi al pannello'}
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-800 font-medium mb-1">Credenziali demo</p>
-            <p className="text-xs text-blue-700">admin@demo-agenzia.it / Admin123!</p>
-            <p className="text-xs text-blue-700">Codice agenzia: demo-agenzia</p>
+          {/* Demo credentials */}
+          <div className="mt-6 p-4 rounded-xl border" style={{ background: 'rgba(59,130,246,0.06)', borderColor: 'rgba(59,130,246,0.15)' }}>
+            <p className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1.5">
+              <Star size={10} className="fill-current" /> Credenziali demo
+            </p>
+            <div className="space-y-1">
+              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>admin@demo-agenzia.it</p>
+              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>Admin123!</p>
+              <p className="text-xs" style={{ color: 'var(--text-3)' }}>Codice: demo-agenzia</p>
+            </div>
           </div>
+
+          <p className="text-center text-xs mt-8" style={{ color: 'var(--text-3)' }}>
+            Travel Agency Management System &copy; 2025
+          </p>
         </div>
       </div>
     </div>
