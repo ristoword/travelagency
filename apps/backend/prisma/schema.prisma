@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents | 9: Suppliers | 10: Communications
+// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents | 9: Suppliers | 10: Comms | 11: Analytics | 12: Workflows
 // =============================================================================
 
 generator client {
@@ -183,6 +183,9 @@ model Tenant {
   supplierIssues         SupplierIssue[]
   communications         Communication[]
   communicationTemplates CommunicationTemplate[]
+  tasks                  Task[]
+  approvals              Approval[]
+  reminders              Reminder[]
 
   @@map("tenants")
 }
@@ -225,6 +228,11 @@ model User {
   caseNotes            CaseNote[]       @relation("CaseNoteAuthor")
   assignedBookings     Booking[]        @relation("BookingAssignedTo")
   sentCommunications   Communication[]  @relation("CommunicationAuthor")
+  assignedTasks        Task[]           @relation("TaskAssignedTo")
+  createdTasks         Task[]           @relation("TaskCreatedBy")
+  requestedApprovals   Approval[]       @relation("ApprovalRequestedBy")
+  approvals            Approval[]       @relation("ApprovalApprover")
+  reminders            Reminder[]       @relation("UserReminders")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -1960,4 +1968,130 @@ model CommunicationTemplate {
   @@index([tenantId])
   @@index([tenantId, type, channel])
   @@map("communication_templates")
+}
+
+// =============================================================================
+// ENUMS — FASE 12 WORKFLOWS
+// =============================================================================
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// =============================================================================
+// FASE 12: TASKS
+// =============================================================================
+
+model Task {
+  id          String       @id @default(uuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  // Links
+  caseId      String?
+  clientId    String?
+  leadId      String?
+
+  assignedToId String?
+  assignedTo   User?   @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  createdById  String?
+  createdBy    User?   @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  tags        String[]
+  notes       String?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedToId])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// =============================================================================
+// FASE 12: APPROVALS
+// =============================================================================
+
+model Approval {
+  id           String         @id @default(uuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type         String
+  title        String
+  description  String?
+  status       ApprovalStatus @default(PENDING)
+
+  resourceType String?
+  resourceId   String?
+
+  requestedById String?
+  requestedBy   User?   @relation("ApprovalRequestedBy", fields: [requestedById], references: [id])
+  approverId    String?
+  approver      User?   @relation("ApprovalApprover", fields: [approverId], references: [id])
+
+  requestedAt  DateTime       @default(now())
+  decidedAt    DateTime?
+  notes        String?
+  rejectedReason String?
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([approverId])
+  @@map("approvals")
+}
+
+// =============================================================================
+// FASE 12: REMINDERS
+// =============================================================================
+
+model Reminder {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title        String
+  message      String?
+  remindAt     DateTime
+  isDone       Boolean  @default(false)
+  doneAt       DateTime?
+
+  resourceType String?
+  resourceId   String?
+
+  userId       String?
+  user         User?   @relation("UserReminders", fields: [userId], references: [id])
+
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([remindAt])
+  @@map("reminders")
 }

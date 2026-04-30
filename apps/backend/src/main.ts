@@ -102,6 +102,8 @@ async function bootstrap() {
     .addTag('Suppliers', 'Anagrafica fornitori')
     .addTag('Suppliers — Contracts', 'Contratti e commissioni')
     .addTag('Communications', 'Email, WhatsApp, template comunicazioni')
+    .addTag('Analytics', 'KPI dashboard, sales, margins, forecasts')
+    .addTag('Workflows', 'Tasks, approvals, reminders')
     .addTag('Health', 'Healthcheck')
     .build();
 

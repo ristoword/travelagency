@@ -21,6 +21,8 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { SuppliersRootModule } from './modules/suppliers/suppliers-root.module';
 import { CommunicationsModule } from './modules/communications/communications.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { WorkflowsModule } from './modules/workflows/workflows.module';
 
 @Module({
   imports: [
@@ -83,6 +85,12 @@ import { CommunicationsModule } from './modules/communications/communications.mo
 
     // Communications
     CommunicationsModule,
+
+    // Analytics
+    AnalyticsModule,
+
+    // Workflows
+    WorkflowsModule,
 
     // Health check
     HealthModule,
