@@ -98,11 +98,15 @@ export class WorkflowsService {
 
   async getMyTasks(tenantId: string, userId: string) {
     const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const weekFromNow = new Date(Date.now() + 7 * 86400000);
+
     const [todo, overdue, dueToday, dueSoon] = await Promise.all([
       this.prisma.task.count({ where: { tenantId, assignedToId: userId, status: TaskStatus.TODO } }),
       this.prisma.task.count({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { lt: now } } }),
-      this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { gte: new Date(now.setHours(0,0,0,0)), lte: new Date(now.setHours(23,59,59,999)) } }, select: TASK_SELECT }),
-      this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { gt: new Date(), lte: new Date(Date.now() + 7 * 86400000) } }, orderBy: { dueDate: 'asc' }, take: 10, select: TASK_SELECT }),
+      this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { gte: todayStart, lte: todayEnd } }, select: TASK_SELECT }),
+      this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { gt: now, lte: weekFromNow } }, orderBy: { dueDate: 'asc' }, take: 10, select: TASK_SELECT }),
     ]);
     return { todo, overdue, dueToday, dueSoon };
   }
@@ -113,10 +117,19 @@ export class WorkflowsService {
     return this.prisma.task.update({
       where: { id },
       data: {
-        ...dto,
+        title: dto.title,
+        description: dto.description,
+        priority: dto.priority,
+        status: dto.status,
+        notes: dto.notes,
+        tags: dto.tags,
+        assignedToId: dto.assignedToId,
+        caseId: dto.caseId,
+        clientId: dto.clientId,
+        leadId: dto.leadId,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         ...(dto.status === TaskStatus.DONE && { completedAt: new Date() }),
-        ...(dto.status !== TaskStatus.DONE && dto.status !== undefined && { completedAt: null }),
+        ...(dto.status && dto.status !== TaskStatus.DONE && { completedAt: null as Date | null }),
       },
       select: TASK_SELECT,
     });

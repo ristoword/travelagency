@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { Request, Response } from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
@@ -41,8 +40,8 @@ async function bootstrap() {
   // API Versioning
   app.enableVersioning({ type: VersioningType.URI });
 
-  // Global prefix — exclude root paths that don't need /api
-  app.setGlobalPrefix('api', { exclude: ['health', '/'] });
+  // Global prefix — health and root are handled by HealthController without prefix
+  app.setGlobalPrefix('api', { exclude: ['health', ''] });
 
   // Global pipes
   app.useGlobalPipes(
@@ -116,12 +115,6 @@ async function bootstrap() {
       tagsSorter: 'alpha',
     },
     customSiteTitle: 'Travel Agency API Docs',
-  });
-
-  // Root redirect → Swagger docs
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get('/', (_req: Request, res: Response) => {
-    res.redirect('/api/docs');
   });
 
   await app.listen(port);
