@@ -20,6 +20,7 @@ import { BookingsRootModule } from './modules/bookings/bookings-root.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { SuppliersRootModule } from './modules/suppliers/suppliers-root.module';
+import { CommunicationsModule } from './modules/communications/communications.module';
 
 @Module({
   imports: [
@@ -79,6 +80,9 @@ import { SuppliersRootModule } from './modules/suppliers/suppliers-root.module';
 
     // Suppliers
     SuppliersRootModule,
+
+    // Communications
+    CommunicationsModule,
 
     // Health check
     HealthModule,

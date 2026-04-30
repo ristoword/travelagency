@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-# OpenSSL required by Prisma on Alpine
+# OpenSSL + libs required by Prisma on Alpine
 RUN apk add --no-cache openssl libc6-compat
 
 RUN npm install -g pnpm@9
@@ -19,13 +19,14 @@ COPY apps/backend ./apps/backend
 
 WORKDIR /app/apps/backend
 
-# Generate Prisma client and build TypeScript
-RUN pnpm prisma generate && pnpm build \
-    && if [ ! -f dist/main.js ]; then echo "ERROR: dist/main.js not found after build. Contents of dist/:"; ls -la dist/ 2>/dev/null || echo "(dist/ directory does not exist)"; exit 1; fi
+# Generate Prisma client and build TypeScript (includes seed-runner.ts)
+RUN pnpm prisma generate && pnpm build
 
 # Railway injects PORT automatically
 EXPOSE 3000
 
-# Push schema to DB (creates all tables) then start the server
-# prisma db push is used because no migration files exist yet
-CMD ["sh", "-c", "node_modules/.bin/prisma db push --accept-data-loss && node dist/main"]
+# Startup sequence:
+# 1. prisma db push  — creates/updates all tables from schema.prisma
+# 2. seed-runner     — seeds DB if empty (skips if data exists, forced if RUN_SEED=true)
+# 3. node dist/main  — starts the NestJS API
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --accept-data-loss && node dist/database/seed-runner.js && node dist/main"]

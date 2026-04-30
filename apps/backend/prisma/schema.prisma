@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents | 9: Suppliers
+// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents | 9: Suppliers | 10: Communications
 // =============================================================================
 
 generator client {
@@ -178,9 +178,11 @@ model Tenant {
   creditNotes       CreditNote[]
   clientDocuments   ClientDocument[]
   documentTemplates DocumentTemplate[]
-  suppliers         Supplier[]
-  supplierContracts SupplierContract[]
-  supplierIssues    SupplierIssue[]
+  suppliers              Supplier[]
+  supplierContracts      SupplierContract[]
+  supplierIssues         SupplierIssue[]
+  communications         Communication[]
+  communicationTemplates CommunicationTemplate[]
 
   @@map("tenants")
 }
@@ -222,6 +224,7 @@ model User {
   assignedCases        TravelCase[]     @relation("CaseAssignedTo")
   caseNotes            CaseNote[]       @relation("CaseNoteAuthor")
   assignedBookings     Booking[]        @relation("BookingAssignedTo")
+  sentCommunications   Communication[]  @relation("CommunicationAuthor")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -399,6 +402,7 @@ model Client {
   payments               Payment[]        @relation("PaymentClient")
   creditNotes            CreditNote[]     @relation("CreditNoteClient")
   documents              ClientDocument[] @relation("ClientDocuments")
+  communications         Communication[]  @relation("CommunicationClient")
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -1829,4 +1833,131 @@ model SupplierIssue {
   @@index([tenantId])
   @@index([supplierId])
   @@map("supplier_issues")
+}
+
+// =============================================================================
+// ENUMS — FASE 10 COMMUNICATIONS
+// =============================================================================
+
+enum CommunicationChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  PHONE
+  CHAT
+}
+
+enum CommunicationDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum CommunicationStatus {
+  DRAFT
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  BOUNCED
+}
+
+enum CommTemplateType {
+  BOOKING_CONFIRMATION
+  QUOTATION_SENT
+  INVOICE_SENT
+  PAYMENT_RECEIVED
+  PAYMENT_REMINDER
+  DEPARTURE_REMINDER
+  WELCOME
+  FOLLOW_UP
+  CUSTOM
+}
+
+// =============================================================================
+// FASE 10: COMMUNICATIONS
+// =============================================================================
+
+model Communication {
+  id          String                 @id @default(uuid())
+  tenantId    String
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  channel     CommunicationChannel
+  direction   CommunicationDirection @default(OUTBOUND)
+  status      CommunicationStatus    @default(DRAFT)
+
+  // Recipients
+  toAddress   String
+  toName      String?
+  fromAddress String?
+  fromName    String?
+  ccAddress   String?
+
+  // Links
+  clientId    String?
+  client      Client?   @relation("CommunicationClient", fields: [clientId], references: [id])
+  leadId      String?
+  caseId      String?
+  bookingId   String?
+  invoiceId   String?
+
+  // Content
+  subject     String?
+  body        String
+  bodyHtml    String?
+  templateId  String?
+
+  // Metadata
+  externalId  String?
+  errorMsg    String?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+
+  attachments Json?
+  metadata    Json?
+
+  authorId    String?
+  author      User?   @relation("CommunicationAuthor", fields: [authorId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, channel])
+  @@index([tenantId, status])
+  @@index([tenantId, clientId])
+  @@index([createdAt])
+  @@map("communications")
+}
+
+// =============================================================================
+// FASE 10: COMMUNICATION TEMPLATES
+// =============================================================================
+
+model CommunicationTemplate {
+  id          String           @id @default(uuid())
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type        CommTemplateType
+  channel     CommunicationChannel
+  name        String
+  description String?
+  subject     String?
+  body        String
+  bodyHtml    String?
+  isDefault   Boolean          @default(false)
+  isActive    Boolean          @default(true)
+  variables   Json?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([tenantId, type, channel, name])
+  @@index([tenantId])
+  @@index([tenantId, type, channel])
+  @@map("communication_templates")
 }
