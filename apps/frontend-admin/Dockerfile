@@ -24,4 +24,4 @@ RUN pnpm build
 EXPOSE 3000
 
 # Use $PORT so Railway's healthcheck and routing work correctly
-CMD ["sh", "-c", "pnpm next start -p ${PORT:-3000}"]
+CMD ["sh", "-c", "pnpm next start -H 0.0.0.0 -p ${PORT:-3000}"]
