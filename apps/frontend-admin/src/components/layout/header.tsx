@@ -32,7 +32,7 @@ interface HeaderProps {
 
 export function Header({ title, subtitle, action }: HeaderProps) {
   const { user } = useAuthStore();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
 
   const segments = pathname.split('/').filter(Boolean);
   const breadcrumbs = segments.map((s, i) => ({

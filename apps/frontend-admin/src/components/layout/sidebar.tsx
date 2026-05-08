@@ -52,7 +52,7 @@ const navItems: NavItem[] = [
 ];
 
 function NavItemComponent({ item, depth = 0 }: { item: NavItem; depth?: number }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
   const [open, setOpen] = useState(() =>
     item.children?.some(c => c.href && pathname.startsWith(c.href)) ?? false,
   );
