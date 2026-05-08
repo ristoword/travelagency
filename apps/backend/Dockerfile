@@ -7,26 +7,25 @@ RUN npm install -g pnpm@9
 
 WORKDIR /app
 
-# Copy workspace manifests
-COPY package.json pnpm-workspace.yaml ./
+# Copy workspace manifests + lockfile for deterministic install
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 
 # Install all dependencies
-RUN pnpm install --filter @travel-agency/backend
+RUN pnpm install --filter @travel-agency/backend --frozen-lockfile
 
-# Copy backend source
+# Copy backend source + prisma schema
 COPY apps/backend ./apps/backend
 
 WORKDIR /app/apps/backend
 
-# Generate Prisma client and build TypeScript (includes seed-runner.ts)
-RUN pnpm prisma generate && pnpm build
+# Generate Prisma client and compile TypeScript
+RUN pnpm exec prisma generate && pnpm build
 
-# Railway injects PORT automatically
 EXPOSE 3000
 
-# Startup sequence:
-# 1. prisma db push  — creates/updates all tables from schema.prisma
-# 2. seed-runner     — seeds DB if empty (skips if data exists, forced if RUN_SEED=true)
-# 3. node dist/main  — starts the NestJS API
-CMD ["sh", "-c", "node_modules/.bin/prisma db push --accept-data-loss && node dist/database/seed-runner.js && node dist/main"]
+# Startup:
+# 1. prisma db push  — creates/syncs all tables from schema (safe on empty DB)
+# 2. seed-runner     — populates demo data if DB is empty (skips if already seeded)
+# 3. node dist/main  — starts NestJS
+CMD ["sh", "-c", "pnpm exec prisma db push --accept-data-loss && node dist/database/seed-runner.js && node dist/main"]
