@@ -36,7 +36,7 @@ import {
   ContractStatus,
   CommissionType,
 } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { hashPassword } from '../src/common/utils/hash.util';
 
 const prisma = new PrismaClient();
 
@@ -209,7 +209,7 @@ async function main() {
     update: {},
     create: {
       tenantId: tenant.id, email: 'admin@demo-agenzia.it',
-      password: await bcrypt.hash('Admin123!', 12),
+      password: await hashPassword('Admin123!'),
       firstName: 'Admin', lastName: 'Demo',
       status: UserStatus.ACTIVE, isEmailVerified: true,
     },
@@ -225,7 +225,7 @@ async function main() {
     update: {},
     create: {
       tenantId: tenant.id, email: 'agente@demo-agenzia.it',
-      password: await bcrypt.hash('Agent123!', 12),
+      password: await hashPassword('Agent123!'),
       firstName: 'Marco', lastName: 'Rossi',
       phone: '+39 333 1234567',
       status: UserStatus.ACTIVE, isEmailVerified: true,

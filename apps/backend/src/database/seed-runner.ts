@@ -4,7 +4,7 @@
  * Usage: node dist/database/seed-runner.js
  */
 import { PrismaClient, TenantPlan, UserStatus } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { hashPassword } from '../common/utils/hash.util';
 
 const prisma = new PrismaClient();
 
@@ -110,7 +110,7 @@ async function seedBase() {
     update: {},
     create: {
       tenantId: tenant.id, email: 'admin@demo-agenzia.it',
-      password: await bcrypt.hash('Admin123!', 12),
+      password: await hashPassword('Admin123!'),
       firstName: 'Admin', lastName: 'Demo',
       status: UserStatus.ACTIVE, isEmailVerified: true,
     },
@@ -125,7 +125,7 @@ async function seedBase() {
     update: {},
     create: {
       tenantId: tenant.id, email: 'agente@demo-agenzia.it',
-      password: await bcrypt.hash('Agent123!', 12),
+      password: await hashPassword('Agent123!'),
       firstName: 'Marco', lastName: 'Rossi',
       status: UserStatus.ACTIVE, isEmailVerified: true,
     },
