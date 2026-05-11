@@ -42,6 +42,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend-admin/public ./apps
 
 USER nextjs
 EXPOSE 3000
-# Forza PORT=3000 — evita che Railway inietti la porta del DB (5432) o altre porte errate
+# Forza PORT=3000 nel CMD (shell form) — sovrascrive qualsiasi variabile iniettata da Railway a runtime
 ENV PORT=3000
-CMD ["node", "apps/frontend-admin/server.js"]
+CMD ["sh", "-c", "PORT=3000 node apps/frontend-admin/server.js"]
