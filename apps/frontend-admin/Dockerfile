@@ -42,5 +42,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend-admin/public ./apps
 
 USER nextjs
 EXPOSE 3000
-# PORT is injected by Railway; Next.js standalone server.js reads it automatically
+# Forza PORT=3000 — evita che Railway inietti la porta del DB (5432) o altre porte errate
+ENV PORT=3000
 CMD ["node", "apps/frontend-admin/server.js"]
