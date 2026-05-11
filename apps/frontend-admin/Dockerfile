@@ -42,6 +42,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend-admin/public ./apps
 
 USER nextjs
 EXPOSE 3000
-# Forza PORT=3000 nel CMD (shell form) — sovrascrive qualsiasi variabile iniettata da Railway a runtime
+# PORT=3000 deve essere impostato nelle Railway Variables del servizio frontend.
+# Il CMD usa il PORT iniettato da Railway — NON sovrascrivere qui o Railway
+# instraderà il traffico sulla porta sbagliata.
 ENV PORT=3000
-CMD ["sh", "-c", "PORT=3000 node apps/frontend-admin/server.js"]
+CMD ["node", "apps/frontend-admin/server.js"]
