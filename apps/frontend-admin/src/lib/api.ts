@@ -1,11 +1,14 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// Uses Next.js server-side proxy (/proxy/api → backend).
+// This avoids NEXT_PUBLIC_ build-time baking issues on Railway.
+// The proxy destination is controlled by BACKEND_URL env var at runtime.
+const PROXY_BASE = '/proxy/api/v1';
 const TENANT_SLUG = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG || 'demo-agenzia';
 
 export const api = axios.create({
-  baseURL: `${API_URL}/api/v1`,
+  baseURL: PROXY_BASE,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -37,7 +40,7 @@ api.interceptors.response.use(
         const refreshToken = Cookies.get('refresh_token');
         if (!refreshToken) throw new Error('No refresh token');
 
-        const res = await axios.post(`${API_URL}/api/v1/auth/refresh`, null, {
+        const res = await axios.post(`${PROXY_BASE}/auth/refresh`, null, {
           headers: {
             Authorization: `Bearer ${refreshToken}`,
             'X-Tenant-Slug': Cookies.get('tenant_slug') || TENANT_SLUG,
