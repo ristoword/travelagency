@@ -64,7 +64,7 @@ async function bootstrap() {
   // Swagger — sempre abilitato (utile in produzione per testare l'API)
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Travel Agency Management System — API')
-    .addServer('https://travel-management-production.up.railway.app', 'Production (Railway)')
+    .addServer(appUrl, nodeEnv === 'production' ? 'Production' : 'Current server')
     .addServer('http://localhost:3000', 'Local development')
     .setDescription(
       `**Gestionale enterprise per agenzie di viaggio**\n\n` +

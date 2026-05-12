@@ -24,11 +24,12 @@ RUN pnpm exec prisma generate && pnpm build
 
 EXPOSE 3000
 
-# Force seed on every startup — seed is fully idempotent (uses upsert) so safe to run multiple times
+# RUN_SEED=true forces demo data seeding even if tenant already exists.
+# Set to "false" (or leave unset) in production with real data.
 ENV RUN_SEED=true
 
 # Startup:
-# 1. prisma db push  — creates/syncs all tables from schema (safe on empty DB)
-# 2. seed-runner     — always seeds/updates demo data (RUN_SEED=true overrides skip logic)
-# 3. node dist/main  — starts NestJS
-CMD ["sh", "-c", "pnpm exec prisma db push --accept-data-loss && node dist/database/seed-runner.js && node dist/main"]
+# 1. prisma migrate deploy  — applies pending migrations safely (no data loss, idempotent)
+# 2. seed-runner            — seeds/updates demo data when RUN_SEED=true
+# 3. node dist/main         — starts NestJS
+CMD ["sh", "-c", "pnpm exec prisma db push && node dist/database/seed-runner.js && node dist/main"]

@@ -37,8 +37,8 @@ export class EmailService {
     const user = this.configService.get<string>('SMTP_USER');
     const pass = this.configService.get<string>('SMTP_PASS');
 
-    if (!host || !user || !pass || pass === 'tua-app-password') {
-      this.logger.warn('SMTP not configured — email sending disabled');
+    if (!host || !user || !pass) {
+      this.logger.warn('SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASS missing) — email sending disabled');
       return;
     }
 

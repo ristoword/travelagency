@@ -2,6 +2,8 @@
 
 import { Search, Bell, Plus, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
+import { useQuery } from '@tanstack/react-query';
+import { get } from '@/lib/api';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -35,6 +37,14 @@ interface HeaderProps {
 export function Header({ title, subtitle, action }: HeaderProps) {
   const { user } = useAuthStore();
   const pathname = usePathname() ?? '/';
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: () => get<{ unreadCount: number }>('/notifications/unread-count').catch(() => ({ unreadCount: 0 })),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const unreadCount = notifData?.unreadCount ?? 0;
 
   const segments = pathname.split('/').filter(Boolean);
   const breadcrumbs = segments.map((s, i) => ({
@@ -78,7 +88,9 @@ export function Header({ title, subtitle, action }: HeaderProps) {
         {/* Notifications */}
         <button className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(255,255,255,0.06)]">
           <Bell size={15} style={{ color: 'var(--text-2)' }} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full" />
+          )}
         </button>
 
         {/* Action button */}

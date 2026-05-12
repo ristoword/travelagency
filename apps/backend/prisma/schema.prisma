@@ -502,6 +502,8 @@ model Contact {
   isPrimary   Boolean  @default(false)
   notes       String?
 
+  passengers  Passenger[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
@@ -972,6 +974,7 @@ model Passenger {
   caseId           String
   case             TravelCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
   contactId        String?
+  contact          Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   firstName        String
   lastName         String
@@ -994,6 +997,8 @@ model Passenger {
   seatPreference   String?
   specialNeeds     String?
   notes            String?
+
+  documents        ClientDocument[]
 
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -1551,6 +1556,7 @@ model ClientDocument {
   clientId      String?
   client        Client?              @relation("ClientDocuments", fields: [clientId], references: [id])
   passengerId   String?
+  passenger     Passenger?           @relation(fields: [passengerId], references: [id], onDelete: SetNull)
 
   type          ClientDocumentType   @default(PASSPORT)
   status        ClientDocumentStatus @default(UNKNOWN)

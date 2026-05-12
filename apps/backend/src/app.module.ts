@@ -1,5 +1,5 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
@@ -33,19 +33,19 @@ import { WorkflowsModule } from './modules/workflows/workflows.module';
       envFilePath: ['.env.local', '.env'],
     }),
 
-    // Rate limiting
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000,
-        limit: 10,
-      },
-      {
-        name: 'long',
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
+    // Rate limiting — valori configurabili tramite THROTTLE_TTL / THROTTLE_LIMIT
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        { name: 'short', ttl: 1000, limit: 10 },
+        {
+          name: 'long',
+          ttl: config.get<number>('throttle.ttl') ?? 60000,
+          limit: config.get<number>('throttle.limit') ?? 100,
+        },
+      ],
+    }),
 
     // Scheduled tasks
     ScheduleModule.forRoot(),

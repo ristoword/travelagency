@@ -8,9 +8,14 @@ import { formatDate } from '@/lib/utils';
 import { Search, FileText, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
 const DOC_TYPE_LABELS: Record<string, string> = {
-  PASSPORT: 'Passaporto', IDENTITY_CARD: 'Carta d\'identità', DRIVING_LICENSE: 'Patente',
-  VISA: 'Visto', HEALTH_INSURANCE: 'Assicurazione sanitaria', VACCINATION_CERT: 'Vaccinazione',
-  TRAVEL_INSURANCE: 'Assicurazione viaggio', OTHER: 'Altro',
+  PASSPORT: 'Passaporto',
+  IDENTITY_CARD: 'Carta d\'identità',
+  DRIVING_LICENSE: 'Patente',
+  VISA: 'Visto',
+  HEALTH_CARD: 'Tessera sanitaria',
+  TAX_CODE_CARD: 'Codice fiscale',
+  RESIDENCE_PERMIT: 'Permesso di soggiorno',
+  OTHER: 'Altro',
 };
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valido', EXPIRED: 'Scaduto', EXPIRING_SOON: 'In scadenza', MISSING: 'Mancante',
