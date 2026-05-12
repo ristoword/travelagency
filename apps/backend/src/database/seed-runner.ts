@@ -106,12 +106,12 @@ async function seedBase() {
 
   // Admin user
   const adminUser = await prisma.user.upsert({
-    where: { tenantId_email: { tenantId: tenant.id, email: 'admin@demo-agenzia.it' } },
-    update: {},
+    where: { tenantId_email: { tenantId: tenant.id, email: 'basilepaolo@me.com' } },
+    update: { password: await hashPassword('Bimb@'), status: UserStatus.ACTIVE, isEmailVerified: true },
     create: {
-      tenantId: tenant.id, email: 'admin@demo-agenzia.it',
-      password: await hashPassword('Admin123!'),
-      firstName: 'Admin', lastName: 'Demo',
+      tenantId: tenant.id, email: 'basilepaolo@me.com',
+      password: await hashPassword('Bimb@'),
+      firstName: 'Paolo', lastName: 'Basile',
       status: UserStatus.ACTIVE, isEmailVerified: true,
     },
   });
@@ -134,8 +134,8 @@ async function seedBase() {
     where: { userId_roleId: { userId: agentUser.id, roleId: agentRole.id } },
     update: {}, create: { userId: agentUser.id, roleId: agentRole.id },
   });
-  console.log(`   ✓ Users: admin@demo-agenzia.it / Admin123!`);
-  console.log(`   ✓ Users: agente@demo-agenzia.it / Agent123!`);
+  console.log(`   ✓ Admin: basilepaolo@me.com / Bimb@`);
+  console.log(`   ✓ Agent: agente@demo-agenzia.it / Agent123!`);
 
   // Default settings
   const settings = [
@@ -152,7 +152,7 @@ async function seedBase() {
 
   console.log('\n✅ Database seeded successfully!');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📌 Login: admin@demo-agenzia.it / Admin123!');
+  console.log('📌 Login: basilepaolo@me.com / Bimb@');
   console.log('📌 Tenant: demo-agenzia (X-Tenant-Slug header)');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }

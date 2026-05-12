@@ -163,7 +163,7 @@ export default function LoginPage() {
               <input
                 {...register('email')}
                 type="email"
-                placeholder="admin@demo-agenzia.it"
+                placeholder="basilepaolo@me.com"
                 className="input-dark w-full"
               />
               {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
@@ -207,8 +207,8 @@ export default function LoginPage() {
               <Star size={10} className="fill-current" /> Credenziali demo
             </p>
             <div className="space-y-1">
-              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>admin@demo-agenzia.it</p>
-              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>Admin123!</p>
+              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>basilepaolo@me.com</p>
+              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>Bimb@</p>
               <p className="text-xs" style={{ color: 'var(--text-3)' }}>Codice: demo-agenzia</p>
             </div>
           </div>
