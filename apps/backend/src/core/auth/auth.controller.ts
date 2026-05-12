@@ -45,8 +45,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('refresh-token')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  refresh(@Req() req: Request & { user: CurrentUserPayload & { refreshToken: string } }) {
-    const { sub, tenantId, email, roles, permissions, refreshToken } = req.user;
+  refresh(@Req() req: Request & { user: CurrentUserPayload & { refreshToken: string; isSuperAdmin: boolean } }) {
+    const { sub, tenantId, email, roles, permissions, refreshToken, isSuperAdmin } = req.user;
     return this.authService.refreshTokens(
       sub,
       tenantId,
@@ -54,6 +54,7 @@ export class AuthController {
       roles,
       permissions,
       email,
+      isSuperAdmin,
     );
   }
 

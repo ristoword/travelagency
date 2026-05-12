@@ -239,6 +239,7 @@ export class AuthService {
     roles: string[],
     permissions: string[],
     email: string,
+    isSuperAdmin: boolean,
   ) {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, tenantId, deletedAt: null, status: 'ACTIVE' },
@@ -259,6 +260,7 @@ export class AuthService {
       tenantId,
       roles,
       permissions,
+      isSuperAdmin,
     });
 
     await this.prisma.user.update({
