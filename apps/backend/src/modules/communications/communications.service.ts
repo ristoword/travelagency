@@ -154,7 +154,7 @@ export class CommunicationsService {
   }
 
   async getStats(tenantId: string) {
-    const [byChannel, byStatus, recent] = await Promise.all([
+    const [byChannel, byStatus, recent, total] = await Promise.all([
       this.prisma.communication.groupBy({
         by: ['channel'],
         where: { tenantId },
@@ -171,8 +171,9 @@ export class CommunicationsService {
         orderBy: { createdAt: 'desc' },
         select: COMM_SELECT,
       }),
+      this.prisma.communication.count({ where: { tenantId } }),
     ]);
-    return { byChannel, byStatus, recent };
+    return { byChannel, byStatus, recent, total };
   }
 
   async findOne(tenantId: string, id: string) {

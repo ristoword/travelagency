@@ -27,7 +27,7 @@ interface MarginAnalytics {
 interface ClientAnalytics {
   bySource: Array<{ source: string; _count: number }>;
   byType: Array<{ type: string; _count: number }>;
-  topSpenders: Array<{ id: string; firstName?: string; lastName?: string; companyName?: string; totalSpent: number }>;
+  topClients: Array<{ id: string; firstName?: string; lastName?: string; companyName?: string; totalSpent: number }>;
 }
 interface Forecast {
   historical: Array<{ month: string; revenue: number }>;

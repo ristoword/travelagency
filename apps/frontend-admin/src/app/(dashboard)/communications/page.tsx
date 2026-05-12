@@ -20,9 +20,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 interface Communication {
   id: string; channel: string; status: string; subject?: string;
-  body: string; to: string; sentAt?: string; createdAt: string;
+  body: string; toAddress: string; sentAt?: string; createdAt: string;
   client?: { firstName?: string; lastName?: string; companyName?: string };
-  sentBy?: { firstName: string; lastName: string };
+  author?: { firstName: string; lastName: string };
 }
 interface CommStats {
   byChannel: Array<{ channel: string; _count: number }>;
@@ -137,13 +137,13 @@ export default function CommunicationsPage() {
                       {CHANNEL_LABELS[c.channel] ?? c.channel}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--text-2)' }}>{c.to}</td>
+                  <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--text-2)' }}>{c.toAddress}</td>
                   <td className="px-4 py-3 font-medium text-white max-w-[200px] truncate">{c.subject ?? c.body.slice(0, 50)}</td>
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-2)' }}>
                     {c.client?.companyName ?? `${c.client?.firstName ?? ''} ${c.client?.lastName ?? ''}`.trim() || '—'}
                   </td>
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-2)' }}>
-                    {c.sentBy ? `${c.sentBy.firstName} ${c.sentBy.lastName}` : '—'}
+                    {c.author ? `${c.author.firstName} ${c.author.lastName}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-2)' }}>{formatDate(c.sentAt ?? c.createdAt)}</td>
                   <td className="px-4 py-3">

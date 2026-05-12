@@ -153,6 +153,10 @@ model Tenant {
   logoUrl     String?
   plan        TenantPlan @default(STARTER)
   isActive    Boolean    @default(true)
+  isVerified  Boolean    @default(false)
+  licenseKey  String?    @unique
+  suspendedAt     DateTime?
+  suspendedReason String?
   trialEndsAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -207,6 +211,7 @@ model User {
   status              UserStatus @default(ACTIVE)
   isEmailVerified     Boolean    @default(false)
   emailVerifiedAt     DateTime?
+  isSuperAdmin        Boolean    @default(false)
   refreshToken        String?
   lastLoginAt         DateTime?
   lastLoginIp         String?

@@ -23,6 +23,8 @@ import { SuppliersRootModule } from './modules/suppliers/suppliers-root.module';
 import { CommunicationsModule } from './modules/communications/communications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { WorkflowsModule } from './modules/workflows/workflows.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { SuperAdminModule } from './core/superadmin/superadmin.module';
 
 @Module({
   imports: [
@@ -61,6 +63,7 @@ import { WorkflowsModule } from './modules/workflows/workflows.module';
     PermissionsModule,
     AuditLogModule,
     SettingsModule,
+    SuperAdminModule,
 
     // CRM
     CrmModule,
@@ -91,6 +94,9 @@ import { WorkflowsModule } from './modules/workflows/workflows.module';
 
     // Workflows
     WorkflowsModule,
+
+    // Notifications
+    NotificationsModule,
 
     // Health check
     HealthModule,

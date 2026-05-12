@@ -139,6 +139,7 @@ export class AuthService {
       tenantId: tenant.id,
       roles,
       permissions,
+      isSuperAdmin: user.isSuperAdmin,
     });
 
     // Update user on successful login
@@ -175,6 +176,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
         roles,
         permissions,
+        isSuperAdmin: user.isSuperAdmin,
         tenantId: tenant.id,
         tenantSlug: tenant.slug,
         tenantName: tenant.name,

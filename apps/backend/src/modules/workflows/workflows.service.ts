@@ -102,13 +102,29 @@ export class WorkflowsService {
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const weekFromNow = new Date(Date.now() + 7 * 86400000);
 
-    const [todo, overdue, dueToday, dueSoon] = await Promise.all([
+    const [todoCount, overdueCount, dueTodayList, dueSoonList, inProgressList] = await Promise.all([
       this.prisma.task.count({ where: { tenantId, assignedToId: userId, status: TaskStatus.TODO } }),
       this.prisma.task.count({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { lt: now } } }),
       this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { gte: todayStart, lte: todayEnd } }, select: TASK_SELECT }),
-      this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { gt: now, lte: weekFromNow } }, orderBy: { dueDate: 'asc' }, take: 10, select: TASK_SELECT }),
+      this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: { not: TaskStatus.DONE }, dueDate: { gt: todayEnd, lte: weekFromNow } }, orderBy: { dueDate: 'asc' }, take: 10, select: TASK_SELECT }),
+      this.prisma.task.findMany({ where: { tenantId, assignedToId: userId, status: TaskStatus.IN_PROGRESS }, orderBy: { updatedAt: 'desc' }, take: 5, select: TASK_SELECT }),
     ]);
-    return { todo, overdue, dueToday, dueSoon };
+
+    // Merge deduplicated task list: today first, then due soon, then in progress
+    const seen = new Set<string>();
+    const tasks = [...dueTodayList, ...dueSoonList, ...inProgressList].filter(t => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+
+    return {
+      todo: todoCount,
+      overdue: overdueCount,
+      dueToday: dueTodayList.length,
+      dueThisWeek: dueSoonList.length,
+      tasks,
+    };
   }
 
   async updateTask(tenantId: string, id: string, dto: Partial<CreateTaskDto> & { status?: TaskStatus }) {

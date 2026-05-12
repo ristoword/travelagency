@@ -208,7 +208,18 @@ export class AnalyticsService {
       }),
     ]);
 
-    return { byServiceType, bySupplier, quotationSummary: quotationMargins, bookingSummary: bookingMargins };
+    const totalRevenue = Number(quotationMargins._sum?.totalAmount ?? 0) + Number(bookingMargins._sum?.amount ?? 0);
+    const totalCost = Number(quotationMargins._sum?.totalCost ?? 0) + Number(bookingMargins._sum?.cost ?? 0);
+    const totalMargin = Number(quotationMargins._sum?.totalMargin ?? 0) + Number(bookingMargins._sum?.marginAmount ?? 0);
+    const marginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
+
+    return {
+      byServiceType,
+      bySupplier,
+      quotationSummary: quotationMargins,
+      bookingSummary: bookingMargins,
+      overall: { totalRevenue, totalCost, totalMargin, marginPercent: Math.round(marginPercent * 10) / 10 },
+    };
   }
 
   // ── Client Analytics ──────────────────────────────────────────────────────

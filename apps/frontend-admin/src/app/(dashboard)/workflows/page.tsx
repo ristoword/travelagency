@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
-import { get, post, patch } from '@/lib/api';
+import { get, post, patch, PaginatedResponse } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { CheckSquare, Clock, AlertTriangle, Plus, CheckCircle, Circle, X } from 'lucide-react';
 
@@ -37,9 +37,9 @@ export default function WorkflowsPage() {
     enabled: tab === 'mine',
   });
 
-  const { data: all, isLoading } = useQuery({
+  const { data: allPaginated, isLoading } = useQuery({
     queryKey: ['tasks-all', { status, priority }],
-    queryFn: () => get<Task[]>('/workflows/tasks', {
+    queryFn: () => get<PaginatedResponse<Task>>('/workflows/tasks', {
       status: status || undefined, priority: priority || undefined, limit: 50,
     }),
     enabled: tab === 'all',
@@ -56,7 +56,7 @@ export default function WorkflowsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks-mine'] }); qc.invalidateQueries({ queryKey: ['tasks-all'] }); },
   });
 
-  const tasks = tab === 'mine' ? (mine?.tasks ?? []) : (all ?? []);
+  const tasks = tab === 'mine' ? (mine?.tasks ?? []) : (allPaginated?.data ?? []);
 
   return (
     <>
