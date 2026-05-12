@@ -7,7 +7,7 @@ import { getPaginationParams, buildPaginatedResult } from '../../../common/utils
 import { CreateQuotationDto, CreateQuotationItemDto } from './dto/create-quotation.dto';
 import { QueryQuotationsDto } from './dto/query-quotations.dto';
 import { AuditAction, QuotationStatus } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import type { Decimal } from '@prisma/client/runtime/library';
 
 const QUOTATION_SELECT = {
   id: true, tenantId: true, number: true, status: true,
