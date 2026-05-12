@@ -13,7 +13,7 @@ COPY apps/backend/tsconfig.build.json ./tsconfig.build.json
 COPY apps/backend/nest-cli.json       ./nest-cli.json
 
 # Install all deps with npm (no lockfile needed, no workspace)
-RUN npm install
+RUN npm install --ignore-scripts
 
 # Copy prisma schema and generate client BEFORE copying all source
 # This ensures the generated Prisma types are available for tsc
