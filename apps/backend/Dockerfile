@@ -20,8 +20,12 @@ COPY apps/backend/ ./apps/backend/
 # Switch to backend directory so pnpm exec resolves binaries locally (not recursively)
 WORKDIR /app/apps/backend
 
-# Generate Prisma client and compile TypeScript
-RUN pnpm exec prisma generate && pnpm build
+# Remove any stale generated Prisma client, then regenerate from schema
+RUN rm -rf node_modules/.prisma node_modules/@prisma/client/runtime 2>/dev/null || true
+RUN npx --yes prisma generate --schema=./prisma/schema.prisma
+
+# Compile TypeScript
+RUN pnpm build
 
 EXPOSE 3000
 
@@ -32,4 +36,4 @@ ENV RUN_SEED=true
 # 1. prisma db push   — syncs schema to DB (safe, idempotent)
 # 2. seed-runner      — seeds/updates demo data when RUN_SEED=true
 # 3. node dist/main   — starts NestJS
-CMD ["sh", "-c", "pnpm exec prisma db push && node dist/database/seed-runner.js && node dist/main"]
+CMD ["sh", "-c", "npx prisma db push --schema=./prisma/schema.prisma && node dist/database/seed-runner.js && node dist/main"]
