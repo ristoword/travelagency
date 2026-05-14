@@ -47,4 +47,72 @@ export class NotificationsController {
     const unreadCount = overdueTasks + pendingApprovals + dueReminders;
     return { unreadCount, overdueTasks, pendingApprovals, dueReminders };
   }
+
+  @Get('list')
+  @ApiOperation({ summary: 'List notification items (overdue tasks, pending approvals, due reminders)' })
+  async getList(@CurrentUser() user: JwtPayload) {
+    const now = new Date();
+
+    const [overdueTasks, pendingApprovals, dueReminders] = await Promise.all([
+      this.prisma.task.findMany({
+        where: {
+          tenantId: user.tenantId,
+          assignedToId: user.sub,
+          status: { not: TaskStatus.DONE },
+          dueDate: { lt: now },
+        },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+          caseId: true,
+          clientId: true,
+          leadId: true,
+        },
+        orderBy: { dueDate: 'asc' },
+      }),
+      this.prisma.approval.findMany({
+        where: {
+          tenantId: user.tenantId,
+          approverId: user.sub,
+          status: ApprovalStatus.PENDING,
+        },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          description: true,
+          resourceType: true,
+          resourceId: true,
+          requestedAt: true,
+        },
+        orderBy: { requestedAt: 'asc' },
+      }),
+      this.prisma.reminder.findMany({
+        where: {
+          tenantId: user.tenantId,
+          userId: user.sub,
+          isDone: false,
+          remindAt: { lte: now },
+        },
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          remindAt: true,
+          resourceType: true,
+          resourceId: true,
+        },
+        orderBy: { remindAt: 'asc' },
+      }),
+    ]);
+
+    return [
+      ...overdueTasks.map((t) => ({ ...t, notificationType: 'OVERDUE_TASK' as const })),
+      ...pendingApprovals.map((a) => ({ ...a, notificationType: 'PENDING_APPROVAL' as const })),
+      ...dueReminders.map((r) => ({ ...r, notificationType: 'DUE_REMINDER' as const })),
+    ];
+  }
 }

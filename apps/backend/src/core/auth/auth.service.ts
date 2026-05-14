@@ -32,9 +32,7 @@ export class AuthService {
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     // Resolve tenant
-    const tenantSlug =
-      dto.tenantSlug ||
-      (await this.resolveTenantFromRequest(ipAddress));
+    const tenantSlug = dto.tenantSlug;
 
     if (!tenantSlug) {
       throw new UnauthorizedException('Tenant not specified');
@@ -376,9 +374,4 @@ export class AuthService {
     return { accessToken, refreshToken, hashedRefreshToken };
   }
 
-  private async resolveTenantFromRequest(
-    _ipAddress?: string,
-  ): Promise<string | null> {
-    return null;
-  }
 }

@@ -1,12 +1,23 @@
 import { Controller, Get, Redirect } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { PrismaService } from '../database/prisma.service';
 import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('Health')
 @Controller()
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly version: string;
+
+  constructor(private readonly prisma: PrismaService) {
+    try {
+      const pkg = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8'));
+      this.version = pkg.version ?? '0.1.0';
+    } catch {
+      this.version = '0.1.0';
+    }
+  }
 
   @Get('/')
   @Public()
@@ -30,7 +41,7 @@ export class HealthController {
     return {
       status: dbStatus === 'ok' ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: this.version,
       services: { database: dbStatus },
     };
   }
