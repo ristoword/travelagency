@@ -1,6 +1,6 @@
 // =============================================================================
 // TRAVEL AGENCY MANAGEMENT SYSTEM — PRISMA SCHEMA
-// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents | 9: Suppliers
+// FASE 1 | 2: CRM | 3: Sales | 4: Cases | 5: Bookings | 6: Accounting | 7: Documents | 9: Suppliers | 10: Comms | 11: Analytics | 12: Workflows
 // =============================================================================
 
 generator client {
@@ -153,6 +153,10 @@ model Tenant {
   logoUrl     String?
   plan        TenantPlan @default(STARTER)
   isActive    Boolean    @default(true)
+  isVerified  Boolean    @default(false)
+  licenseKey  String?    @unique
+  suspendedAt     DateTime?
+  suspendedReason String?
   trialEndsAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -178,9 +182,14 @@ model Tenant {
   creditNotes       CreditNote[]
   clientDocuments   ClientDocument[]
   documentTemplates DocumentTemplate[]
-  suppliers         Supplier[]
-  supplierContracts SupplierContract[]
-  supplierIssues    SupplierIssue[]
+  suppliers              Supplier[]
+  supplierContracts      SupplierContract[]
+  supplierIssues         SupplierIssue[]
+  communications         Communication[]
+  communicationTemplates CommunicationTemplate[]
+  tasks                  Task[]
+  approvals              Approval[]
+  reminders              Reminder[]
 
   @@map("tenants")
 }
@@ -202,6 +211,7 @@ model User {
   status              UserStatus @default(ACTIVE)
   isEmailVerified     Boolean    @default(false)
   emailVerifiedAt     DateTime?
+  isSuperAdmin        Boolean    @default(false)
   refreshToken        String?
   lastLoginAt         DateTime?
   lastLoginIp         String?
@@ -222,6 +232,12 @@ model User {
   assignedCases        TravelCase[]     @relation("CaseAssignedTo")
   caseNotes            CaseNote[]       @relation("CaseNoteAuthor")
   assignedBookings     Booking[]        @relation("BookingAssignedTo")
+  sentCommunications   Communication[]  @relation("CommunicationAuthor")
+  assignedTasks        Task[]           @relation("TaskAssignedTo")
+  createdTasks         Task[]           @relation("TaskCreatedBy")
+  requestedApprovals   Approval[]       @relation("ApprovalRequestedBy")
+  approvals            Approval[]       @relation("ApprovalApprover")
+  reminders            Reminder[]       @relation("UserReminders")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -399,6 +415,7 @@ model Client {
   payments               Payment[]        @relation("PaymentClient")
   creditNotes            CreditNote[]     @relation("CreditNoteClient")
   documents              ClientDocument[] @relation("ClientDocuments")
+  communications         Communication[]  @relation("CommunicationClient")
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -489,6 +506,8 @@ model Contact {
   taxCode     String?
   isPrimary   Boolean  @default(false)
   notes       String?
+
+  passengers  Passenger[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -960,6 +979,7 @@ model Passenger {
   caseId           String
   case             TravelCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
   contactId        String?
+  contact          Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   firstName        String
   lastName         String
@@ -982,6 +1002,8 @@ model Passenger {
   seatPreference   String?
   specialNeeds     String?
   notes            String?
+
+  documents        ClientDocument[]
 
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -1539,6 +1561,7 @@ model ClientDocument {
   clientId      String?
   client        Client?              @relation("ClientDocuments", fields: [clientId], references: [id])
   passengerId   String?
+  passenger     Passenger?           @relation(fields: [passengerId], references: [id], onDelete: SetNull)
 
   type          ClientDocumentType   @default(PASSPORT)
   status        ClientDocumentStatus @default(UNKNOWN)
@@ -1829,4 +1852,257 @@ model SupplierIssue {
   @@index([tenantId])
   @@index([supplierId])
   @@map("supplier_issues")
+}
+
+// =============================================================================
+// ENUMS — FASE 10 COMMUNICATIONS
+// =============================================================================
+
+enum CommunicationChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  PHONE
+  CHAT
+}
+
+enum CommunicationDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum CommunicationStatus {
+  DRAFT
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  BOUNCED
+}
+
+enum CommTemplateType {
+  BOOKING_CONFIRMATION
+  QUOTATION_SENT
+  INVOICE_SENT
+  PAYMENT_RECEIVED
+  PAYMENT_REMINDER
+  DEPARTURE_REMINDER
+  WELCOME
+  FOLLOW_UP
+  CUSTOM
+}
+
+// =============================================================================
+// FASE 10: COMMUNICATIONS
+// =============================================================================
+
+model Communication {
+  id          String                 @id @default(uuid())
+  tenantId    String
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  channel     CommunicationChannel
+  direction   CommunicationDirection @default(OUTBOUND)
+  status      CommunicationStatus    @default(DRAFT)
+
+  // Recipients
+  toAddress   String
+  toName      String?
+  fromAddress String?
+  fromName    String?
+  ccAddress   String?
+
+  // Links
+  clientId    String?
+  client      Client?   @relation("CommunicationClient", fields: [clientId], references: [id])
+  leadId      String?
+  caseId      String?
+  bookingId   String?
+  invoiceId   String?
+
+  // Content
+  subject     String?
+  body        String
+  bodyHtml    String?
+  templateId  String?
+
+  // Metadata
+  externalId  String?
+  errorMsg    String?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+
+  attachments Json?
+  metadata    Json?
+
+  authorId    String?
+  author      User?   @relation("CommunicationAuthor", fields: [authorId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, channel])
+  @@index([tenantId, status])
+  @@index([tenantId, clientId])
+  @@index([createdAt])
+  @@map("communications")
+}
+
+// =============================================================================
+// FASE 10: COMMUNICATION TEMPLATES
+// =============================================================================
+
+model CommunicationTemplate {
+  id          String           @id @default(uuid())
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type        CommTemplateType
+  channel     CommunicationChannel
+  name        String
+  description String?
+  subject     String?
+  body        String
+  bodyHtml    String?
+  isDefault   Boolean          @default(false)
+  isActive    Boolean          @default(true)
+  variables   Json?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([tenantId, type, channel, name])
+  @@index([tenantId])
+  @@index([tenantId, type, channel])
+  @@map("communication_templates")
+}
+
+// =============================================================================
+// ENUMS — FASE 12 WORKFLOWS
+// =============================================================================
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// =============================================================================
+// FASE 12: TASKS
+// =============================================================================
+
+model Task {
+  id          String       @id @default(uuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  // Links
+  caseId      String?
+  clientId    String?
+  leadId      String?
+
+  assignedToId String?
+  assignedTo   User?   @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  createdById  String?
+  createdBy    User?   @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  tags        String[]
+  notes       String?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedToId])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// =============================================================================
+// FASE 12: APPROVALS
+// =============================================================================
+
+model Approval {
+  id           String         @id @default(uuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type         String
+  title        String
+  description  String?
+  status       ApprovalStatus @default(PENDING)
+
+  resourceType String?
+  resourceId   String?
+
+  requestedById String?
+  requestedBy   User?   @relation("ApprovalRequestedBy", fields: [requestedById], references: [id])
+  approverId    String?
+  approver      User?   @relation("ApprovalApprover", fields: [approverId], references: [id])
+
+  requestedAt  DateTime       @default(now())
+  decidedAt    DateTime?
+  notes        String?
+  rejectedReason String?
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([approverId])
+  @@map("approvals")
+}
+
+// =============================================================================
+// FASE 12: REMINDERS
+// =============================================================================
+
+model Reminder {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title        String
+  message      String?
+  remindAt     DateTime
+  isDone       Boolean  @default(false)
+  doneAt       DateTime?
+
+  resourceType String?
+  resourceId   String?
+
+  userId       String?
+  user         User?   @relation("UserReminders", fields: [userId], references: [id])
+
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([remindAt])
+  @@map("reminders")
 }

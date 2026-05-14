@@ -12,6 +12,8 @@ build/
 .env
 .env.local
 .env.production
+.env.railway.backend
+.env.railway.frontend
 
 # Logs
 *.log

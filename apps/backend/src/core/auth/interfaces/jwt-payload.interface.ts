@@ -4,5 +4,6 @@ export interface JwtPayload {
   tenantId: string;
   roles: string[];
   permissions: string[];
+  isSuperAdmin: boolean;
   type: 'access' | 'refresh';
 }

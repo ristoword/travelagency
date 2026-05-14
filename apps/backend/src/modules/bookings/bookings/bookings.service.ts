@@ -94,8 +94,30 @@ export class BookingsService {
       newValues: { number: booking.number, type: booking.type, amount: booking.amount },
     });
 
+    if (dto.clientId) {
+      await this.syncClientStats(tenantId, dto.clientId);
+    }
+
     this.logger.log(`Booking created: ${number} (${dto.type})`);
     return booking;
+  }
+
+  private async syncClientStats(tenantId: string, clientId: string): Promise<void> {
+    const agg = await this.prisma.booking.aggregate({
+      where: { tenantId, clientId, deletedAt: null },
+      _count: { id: true },
+      _sum: { amount: true },
+      _max: { serviceDate: true, createdAt: true },
+    });
+
+    await this.prisma.client.updateMany({
+      where: { id: clientId, tenantId },
+      data: {
+        totalBookings: agg._count.id,
+        totalSpent: agg._sum.amount ?? 0,
+        lastBookingDate: agg._max.serviceDate ?? agg._max.createdAt,
+      },
+    });
   }
 
   async findAll(tenantId: string, query: QueryBookingsDto) {
@@ -293,5 +315,8 @@ export class BookingsService {
     await this.auditLogService.log({
       tenantId, userId: deletedBy, action: AuditAction.DELETE, resource: 'bookings', resourceId: id,
     });
+    if (b.clientId) {
+      await this.syncClientStats(tenantId, b.clientId);
+    }
   }
 }
