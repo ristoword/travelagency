@@ -23,9 +23,9 @@ RUN npx prisma generate
 # Copy backend source
 COPY apps/backend/src ./src
 
-# Generate Prisma client and build TypeScript
-RUN pnpm prisma generate && pnpm build \
-    && if [ ! -f dist/main.js ]; then echo "ERROR: dist/main.js not found after build. Contents of dist/:"; ls -la dist/ 2>/dev/null || echo "(dist/ directory does not exist)"; exit 1; fi
+# Build TypeScript and verify output
+RUN npm run build \
+    && if [ ! -f dist/main.js ]; then echo "ERROR: dist/main.js not found after build"; ls -la dist/ 2>/dev/null || echo "(dist/ does not exist)"; exit 1; fi
 
 EXPOSE 3000
 

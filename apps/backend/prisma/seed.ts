@@ -204,13 +204,14 @@ async function main() {
 
   // ── 4. Users ───────────────────────────────
   console.log('\n👤 Creating users...');
+  const OWNER_PASSWORD = 'PaoloB@Travel2026!';
   const adminUser = await prisma.user.upsert({
-    where: { tenantId_email: { tenantId: tenant.id, email: 'admin@demo-agenzia.it' } },
-    update: {},
+    where: { tenantId_email: { tenantId: tenant.id, email: 'basilepaolo@me.com' } },
+    update: { password: await hashPassword(OWNER_PASSWORD), status: UserStatus.ACTIVE, isEmailVerified: true },
     create: {
-      tenantId: tenant.id, email: 'admin@demo-agenzia.it',
-      password: await hashPassword('Admin123!'),
-      firstName: 'Admin', lastName: 'Demo',
+      tenantId: tenant.id, email: 'basilepaolo@me.com',
+      password: await hashPassword(OWNER_PASSWORD),
+      firstName: 'Paolo', lastName: 'Basile',
       status: UserStatus.ACTIVE, isEmailVerified: true,
     },
   });
@@ -218,7 +219,7 @@ async function main() {
     where: { userId_roleId: { userId: adminUser.id, roleId: createdRoles.admin } },
     update: {}, create: { userId: adminUser.id, roleId: createdRoles.admin },
   });
-  console.log(`   ✓ Admin: admin@demo-agenzia.it / Admin123!`);
+  console.log(`   ✓ Admin: basilepaolo@me.com / ${OWNER_PASSWORD}`);
 
   const agentUser = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: tenant.id, email: 'agente@demo-agenzia.it' } },

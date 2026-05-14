@@ -63,7 +63,7 @@ export class AnalyticsController {
 
   @Get('forecasts')
   @RequirePermissions('analytics:read')
-  @ApiOperation({ summary: 'Revenue forecast — 6 months historical trend + 3 months projection (linear regression)' })
+  @ApiOperation({ summary: 'Revenue forecast — 6 months historical trend + 3 months heuristic projection based on historical trends' })
   getForecasts(@CurrentUser() user: CurrentUserPayload) {
     return this.service.getForecasts(user.tenantId);
   }

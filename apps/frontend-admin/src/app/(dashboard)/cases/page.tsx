@@ -8,6 +8,7 @@ import { get, PaginatedResponse } from '@/lib/api';
 import { formatCurrency, formatDate, getClientName } from '@/lib/utils';
 import { CASE_STATUS_LABELS, CASE_STATUS_COLORS } from '@/lib/constants';
 import { Search, Plus, Plane, Users, CheckSquare } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface TravelCase {
   id: string;
@@ -51,7 +52,7 @@ export default function CasesPage() {
             <option value="">Tutti gli stati</option>
             {Object.entries(CASE_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap">
+          <button onClick={() => toast('Creazione pratica — prossimamente disponibile', { icon: '🚧' })} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap">
             <Plus size={16} /> Nuova Pratica
           </button>
         </div>
