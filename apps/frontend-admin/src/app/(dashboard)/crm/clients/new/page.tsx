@@ -34,7 +34,7 @@ export default function NewClientPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const create = useMutation({
-    mutationFn: (data: object) => post('/crm/clients', data),
+    mutationFn: (data: object) => post('/clients', data),
     onSuccess: (data: { id: string }) => {
       router.push(`/crm/clients/${data.id}`);
     },

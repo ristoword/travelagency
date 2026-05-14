@@ -113,7 +113,7 @@ export default function LoginPage() {
 
           {/* Bottom stats */}
           <div className="flex gap-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
-            {[['10+', 'Moduli'], ['200+', 'Endpoint API'], ['40+', 'Modelli DB']].map(([n, l]) => (
+            {[['12', 'Moduli'], ['150+', 'Endpoint API'], ['40+', 'Modelli DB']].map(([n, l]) => (
               <div key={l}>
                 <p className="text-2xl font-bold text-white">{n}</p>
                 <p className="text-xs" style={{ color: 'var(--text-3)' }}>{l}</p>
@@ -173,7 +173,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>Password</label>
-                <button type="button" className="text-xs text-blue-400 hover:text-blue-300">
+                <button type="button" onClick={() => toast('Contatta l\'amministratore per il reset password', { icon: 'ℹ️', duration: 4000 })} className="text-xs text-blue-400 hover:text-blue-300">
                   Password dimenticata?
                 </button>
               </div>
@@ -208,7 +208,7 @@ export default function LoginPage() {
             </p>
             <div className="space-y-1">
               <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>basilepaolo@me.com</p>
-              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>Bimb@</p>
+              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>TrAvEl@Sup3r2026!</p>
               <p className="text-xs" style={{ color: 'var(--text-3)' }}>Codice: demo-agenzia</p>
             </div>
           </div>
