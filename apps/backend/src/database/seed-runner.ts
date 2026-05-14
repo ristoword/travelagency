@@ -199,7 +199,7 @@ async function seedBase() {
           toAddress: c.toAddress, subject: c.subject,
           body: c.body, status: c.status,
           authorId: adminUser.id,
-          sentAt: c.status !== CommunicationStatus.QUEUED ? new Date() : undefined,
+          sentAt: (c.status as string) !== CommunicationStatus.QUEUED ? new Date() : undefined,
         },
       });
     }
