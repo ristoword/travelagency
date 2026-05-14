@@ -139,6 +139,7 @@ export class AuthService {
       tenantId: tenant.id,
       roles,
       permissions,
+      isSuperAdmin: user.isSuperAdmin,
     });
 
     // Update user on successful login
@@ -175,6 +176,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
         roles,
         permissions,
+        isSuperAdmin: user.isSuperAdmin,
         tenantId: tenant.id,
         tenantSlug: tenant.slug,
         tenantName: tenant.name,
@@ -237,6 +239,7 @@ export class AuthService {
     roles: string[],
     permissions: string[],
     email: string,
+    isSuperAdmin: boolean,
   ) {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, tenantId, deletedAt: null, status: 'ACTIVE' },
@@ -257,6 +260,7 @@ export class AuthService {
       tenantId,
       roles,
       permissions,
+      isSuperAdmin,
     });
 
     await this.prisma.user.update({

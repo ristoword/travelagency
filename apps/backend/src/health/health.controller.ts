@@ -1,14 +1,22 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Redirect } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../database/prisma.service';
 import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('Health')
-@Controller('health')
+@Controller()
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Get()
+  @Get('/')
+  @Public()
+  @Redirect('/api/docs', 302)
+  @ApiOperation({ summary: 'Root redirect to Swagger docs' })
+  root() {
+    return {};
+  }
+
+  @Get('health')
   @Public()
   @ApiOperation({ summary: 'Health check' })
   async check() {
@@ -22,9 +30,8 @@ export class HealthController {
     return {
       status: dbStatus === 'ok' ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
-      services: {
-        database: dbStatus,
-      },
+      version: '1.0.0',
+      services: { database: dbStatus },
     };
   }
 }

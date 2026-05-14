@@ -13,6 +13,7 @@ export class QueryDocumentsDto {
   @ApiPropertyOptional({ enum: ClientDocumentStatus }) @IsOptional() @IsEnum(ClientDocumentStatus) status?: ClientDocumentStatus;
   @ApiPropertyOptional() @IsOptional() @IsString() clientId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() passengerId?: string;
+  @ApiPropertyOptional({ description: 'Search by document number or holder name' }) @IsOptional() @IsString() search?: string;
   @ApiPropertyOptional({ description: 'Filter expiring within N days' }) @IsOptional() expiringWithinDays?: number;
 }
 
@@ -77,6 +78,13 @@ export class ClientDocumentsService {
       ...(query.clientId && { clientId: query.clientId }),
       ...(query.passengerId && { passengerId: query.passengerId }),
       ...(expiryThreshold && { expiryDate: { lte: expiryThreshold } }),
+      ...(query.search && {
+        OR: [
+          { documentNumber: { contains: query.search, mode: 'insensitive' as const } },
+          { holderFirstName: { contains: query.search, mode: 'insensitive' as const } },
+          { holderLastName: { contains: query.search, mode: 'insensitive' as const } },
+        ],
+      }),
     };
 
     const [data, total] = await Promise.all([

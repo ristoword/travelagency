@@ -11,6 +11,7 @@ export interface AuthUser {
   avatarUrl?: string;
   roles: string[];
   permissions: string[];
+  isSuperAdmin: boolean;
   tenantId: string;
   tenantSlug: string;
   tenantName: string;
@@ -55,6 +56,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        const { user } = get();
+        const isSA = user?.isSuperAdmin;
         try {
           await post('/auth/logout');
         } catch { /* ignore */ }
@@ -62,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
         Cookies.remove('refresh_token');
         Cookies.remove('tenant_slug');
         set({ user: null, isAuthenticated: false });
-        window.location.href = '/login';
+        window.location.href = isSA ? '/superadmin/login' : '/login';
       },
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
