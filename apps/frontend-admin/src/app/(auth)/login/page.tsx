@@ -208,7 +208,7 @@ export default function LoginPage() {
             </p>
             <div className="space-y-1">
               <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>basilepaolo@me.com</p>
-              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>TrAvEl@Sup3r2026!</p>
+              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>PaoloB@Travel2026!</p>
               <p className="text-xs" style={{ color: 'var(--text-3)' }}>Codice: demo-agenzia</p>
             </div>
           </div>

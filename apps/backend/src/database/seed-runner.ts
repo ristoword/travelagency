@@ -104,13 +104,14 @@ async function seedBase() {
   });
   console.log(`   ✓ Roles: Amministratore, Agente di Viaggio`);
 
-  // Admin user
+  // Admin user — Paolo Basile (owner)
+  const OWNER_PASSWORD = 'PaoloB@Travel2026!';
   const adminUser = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: tenant.id, email: 'basilepaolo@me.com' } },
-    update: { password: await hashPassword('Bimb@'), status: UserStatus.ACTIVE, isEmailVerified: true },
+    update: { password: await hashPassword(OWNER_PASSWORD), status: UserStatus.ACTIVE, isEmailVerified: true },
     create: {
       tenantId: tenant.id, email: 'basilepaolo@me.com',
-      password: await hashPassword('Bimb@'),
+      password: await hashPassword(OWNER_PASSWORD),
       firstName: 'Paolo', lastName: 'Basile',
       status: UserStatus.ACTIVE, isEmailVerified: true,
     },
@@ -134,7 +135,7 @@ async function seedBase() {
     where: { userId_roleId: { userId: agentUser.id, roleId: agentRole.id } },
     update: {}, create: { userId: agentUser.id, roleId: agentRole.id },
   });
-  console.log(`   ✓ Admin: basilepaolo@me.com / Bimb@`);
+  console.log(`   ✓ Admin: basilepaolo@me.com / ${OWNER_PASSWORD}`);
   console.log(`   ✓ Agent: agente@demo-agenzia.it / Agent123!`);
 
   // ── SuperAdmin tenant + user ───────────────────────────────────────────────
@@ -150,15 +151,15 @@ async function seedBase() {
 
   const superadminUser = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: superadminTenant.id, email: 'basilepaolo@me.com' } },
-    update: { password: await hashPassword('Bimb@2015'), status: UserStatus.ACTIVE, isSuperAdmin: true, isEmailVerified: true },
+    update: { password: await hashPassword(OWNER_PASSWORD), status: UserStatus.ACTIVE, isSuperAdmin: true, isEmailVerified: true },
     create: {
       tenantId: superadminTenant.id, email: 'basilepaolo@me.com',
-      password: await hashPassword('Bimb@2015'),
+      password: await hashPassword(OWNER_PASSWORD),
       firstName: 'Paolo', lastName: 'Basile',
       status: UserStatus.ACTIVE, isSuperAdmin: true, isEmailVerified: true,
     },
   });
-  console.log(`   ✓ SuperAdmin: basilepaolo@me.com / Bimb@2015 (tenant: _superadmin)`);
+  console.log(`   ✓ SuperAdmin: basilepaolo@me.com / ${OWNER_PASSWORD} (tenant: _superadmin)`);
 
   // ── Demo workflow tasks ────────────────────────────────────────────────────
   const taskData = [
@@ -221,9 +222,9 @@ async function seedBase() {
 
   console.log('\n✅ Database seeded successfully!');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📌 Admin:      basilepaolo@me.com / Bimb@       (tenant: demo-agenzia)');
-  console.log('📌 Agent:      agente@demo-agenzia.it / Agent123! (tenant: demo-agenzia)');
-  console.log('📌 SuperAdmin: basilepaolo@me.com / Bimb@2015   (tenant: _superadmin) → /superadmin');
+  console.log('📌 Admin:      basilepaolo@me.com / ' + OWNER_PASSWORD + ' (tenant: demo-agenzia)');
+  console.log('📌 Agent:      agente@demo-agenzia.it / Agent123!              (tenant: demo-agenzia)');
+  console.log('📌 SuperAdmin: basilepaolo@me.com / ' + OWNER_PASSWORD + ' (tenant: _superadmin) → /superadmin');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
