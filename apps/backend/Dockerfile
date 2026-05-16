@@ -20,8 +20,9 @@ RUN npm install --ignore-scripts
 COPY apps/backend/prisma ./prisma
 RUN npx prisma generate
 
-# Copy backend source
-COPY apps/backend/src ./src
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY apps/backend/prisma ./apps/backend/prisma
 
 # Build TypeScript and verify output
 RUN npm run build \
