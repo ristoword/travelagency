@@ -1,9 +1,10 @@
-# Servizio BACKEND (default). Per il frontend admin usa Dockerfile:
-# apps/frontend-admin/Dockerfile e apps/frontend-admin/railway.toml nel nuovo servizio.
+# ⚠️  Non usare questo file per il backend: crea un servizio con
+# Root Directory = apps/backend (legge apps/backend/railway.toml).
+# Frontend: Root Directory vuota, Dockerfile = apps/frontend-admin/Dockerfile
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "apps/backend/Dockerfile"
+dockerfilePath = "apps/frontend-admin/Dockerfile"
 buildCommand = ""
 
 [deploy]
