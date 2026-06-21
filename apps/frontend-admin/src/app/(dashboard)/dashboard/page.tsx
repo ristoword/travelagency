@@ -92,7 +92,7 @@ export default function DashboardPage() {
     queryKey: ['case-stats'],
     queryFn: () => get<{
       byStatus: Array<{ status: string; _count: number }>;
-      upcoming: Array<{ id: string; number: string; title: string; departureDate: string; destination?: string }>;
+      upcoming: Array<{ id: string; number: string; title: string; departureDate: string; destination?: string; status?: string }>;
     }>('/cases/stats'),
   });
 
@@ -143,7 +143,7 @@ export default function DashboardPage() {
                   {kpis.alerts.overdueInvoices} fatture scadute
                 </Link>
               ) : null}
-              <Link href="/cases" className="btn-primary text-sm px-4 py-2.5">
+              <Link href="/cases/new" className="btn-primary text-sm px-4 py-2.5">
                 Nuova Pratica
               </Link>
             </div>
@@ -298,7 +298,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs font-semibold text-white">{formatDate(c.departureDate)}</p>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full badge-blue">Confermata</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${CASE_STATUS_COLORS[c.status ?? ''] ?? 'badge-gray'}`}>
+                      {CASE_STATUS_LABELS[c.status ?? ''] ?? c.status ?? 'N/D'}
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -330,9 +332,9 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-2)' }}>Azioni Rapide</p>
               <div className="space-y-1.5">
                 {[
-                  { icon: Users, label: 'Nuovo Cliente', href: '/crm/clients', color: '#8b5cf6' },
+                  { icon: Users, label: 'Nuovo Cliente', href: '/crm/clients/new', color: '#8b5cf6' },
                   { icon: FileText, label: 'Nuovo Preventivo', href: '/sales/quotations', color: '#06b6d4' },
-                  { icon: Briefcase, label: 'Nuova Pratica', href: '/cases', color: '#10b981' },
+                  { icon: Briefcase, label: 'Nuova Pratica', href: '/cases/new', color: '#10b981' },
                   { icon: Euro, label: 'Nuova Fattura', href: '/accounting/invoices', color: '#f59e0b' },
                 ].map(a => (
                   <Link key={a.label} href={a.href}

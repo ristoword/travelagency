@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 // This avoids NEXT_PUBLIC_ build-time baking issues on Railway.
 // The proxy destination is controlled by BACKEND_URL env var at runtime.
 const PROXY_BASE = '/proxy/api/v1';
-const TENANT_SLUG = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG || 'demo-agenzia';
+const TENANT_SLUG = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG || '';
 
 export const api = axios.create({
   baseURL: PROXY_BASE,

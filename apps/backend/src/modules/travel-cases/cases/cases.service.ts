@@ -181,6 +181,10 @@ export class CasesService {
         itinerary: { orderBy: { dayNumber: 'asc' } },
         services: { orderBy: { serviceDate: 'asc' } },
         checklists: { orderBy: { createdAt: 'asc' } },
+        notes: {
+          orderBy: { createdAt: 'desc' },
+          include: { author: { select: { id: true, firstName: true, lastName: true } } },
+        },
         statusHistory: { orderBy: { changedAt: 'desc' } },
       },
     });

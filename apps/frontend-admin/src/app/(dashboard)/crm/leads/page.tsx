@@ -7,6 +7,7 @@ import { get, PaginatedResponse } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from '@/lib/constants';
 import { Plus, TrendingUp, Target, Euro, Percent } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useState } from 'react';
 
 interface Lead {
@@ -111,7 +112,7 @@ export default function LeadsPage() {
             <h2 className="text-base font-semibold text-gray-900">
               {statusFilter ? `Lead: ${LEAD_STATUS_LABELS[statusFilter]}` : 'Tutti i lead'}
             </h2>
-            <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
+            <button onClick={() => toast('Creazione lead — prossimamente disponibile', { icon: '🚧' })} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
               <Plus size={15} /> Nuovo Lead
             </button>
           </div>

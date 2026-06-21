@@ -8,6 +8,7 @@ import { get, PaginatedResponse } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from '@/lib/constants';
 import { Search, Plus, AlertTriangle, Euro, TrendingDown } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Invoice {
   id: string;
@@ -81,7 +82,7 @@ export default function InvoicesPage() {
             <option value="">Tutti gli stati</option>
             {Object.entries(INVOICE_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap">
+          <button onClick={() => toast('Creazione fattura — prossimamente disponibile', { icon: '🚧' })} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap">
             <Plus size={16} /> Nuova Fattura
           </button>
         </div>

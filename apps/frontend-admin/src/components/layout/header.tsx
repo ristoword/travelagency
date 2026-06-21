@@ -82,16 +82,16 @@ export function Header({ title, subtitle, action }: HeaderProps) {
         {/* Search */}
         <div className="relative hidden md:block">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-3)' }} />
-          <input placeholder="Cerca..." className="input-dark pl-8 pr-4 py-2 w-56 text-xs" />
+          <input placeholder="Cerca..." className="input-dark pl-8 pr-4 py-2 w-56 text-xs" onFocus={() => {}} onKeyDown={(e) => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) window.location.href = '/crm/clients?search=' + encodeURIComponent(v); } }} />
         </div>
 
         {/* Notifications */}
-        <button className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(255,255,255,0.06)]">
+        <Link href="/workflows" className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(255,255,255,0.06)]">
           <Bell size={15} style={{ color: 'var(--text-2)' }} />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full" />
           )}
-        </button>
+        </Link>
 
         {/* Action button */}
         {action && (

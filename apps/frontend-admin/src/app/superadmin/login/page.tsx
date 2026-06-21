@@ -1,17 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const data = (err as { response?: { data?: { message?: string | string[] } } }).response?.data;
+    const msg = data?.message;
+    if (Array.isArray(msg)) return msg.join(', ');
+    if (typeof msg === 'string') return msg;
+  }
+  if (err instanceof Error) return err.message;
+  return 'Credenziali non valide';
+}
+
 export default function SuperAdminLoginPage() {
-  const [email, setEmail] = useState('basilepaolo@me.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
+  const [configWarning, setConfigWarning] = useState('');
   const { login, isLoading } = useAuthStore();
   const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/debug-config')
+      .then(r => r.json())
+      .then(data => {
+        if (data.misconfigured || !data.backend?.reachable) {
+          setConfigWarning(
+            data.hint ||
+            data.misconfigured ||
+            `Backend non raggiungibile (${data.BACKEND_URL}). Controlla BACKEND_URL su Railway.`,
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +52,8 @@ export default function SuperAdminLoginPage() {
         return;
       }
       router.push('/superadmin');
-    } catch {
-      setError('Credenziali non valide');
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   };
 
@@ -44,6 +71,12 @@ export default function SuperAdminLoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="card p-8 space-y-5">
+          {configWarning && (
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10">
+              <AlertCircle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-300">{configWarning}</p>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--text-2)' }}>Email</label>
             <input

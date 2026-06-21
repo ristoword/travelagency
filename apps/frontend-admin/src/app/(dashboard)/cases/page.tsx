@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { get, PaginatedResponse } from '@/lib/api';
@@ -51,9 +52,9 @@ export default function CasesPage() {
             <option value="">Tutti gli stati</option>
             {Object.entries(CASE_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap">
+          <Link href="/cases/new" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap">
             <Plus size={16} /> Nuova Pratica
-          </button>
+          </Link>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -75,40 +76,68 @@ export default function CasesPage() {
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400">Nessuna pratica trovata</td></tr>
               )}
               {data?.data.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={c.id} className="hover:bg-gray-50 transition-colors cursor-pointer">
                   <td className="px-6 py-4">
-                    <p className="text-sm font-semibold text-blue-600">{c.number}</p>
-                    <p className="text-sm text-gray-900 font-medium truncate max-w-48">{c.title}</p>
-                    <p className="text-xs text-gray-400">{c.client ? getClientName(c.client) : '—'}</p>
+                    <Link href={`/cases/${c.id}`} className="block">
+                      <p className="text-sm font-semibold text-blue-600">{c.number}</p>
+                      <p className="text-sm text-gray-900 font-medium truncate max-w-48">{c.title}</p>
+                      <p className="text-xs text-gray-400">{c.client ? getClientName(c.client) : '—'}</p>
+                    </Link>
                   </td>
                   <td className="px-6 py-4 hidden md:table-cell">
-                    <div className="flex items-center gap-2">
+                    <Link href={`/cases/${c.id}`} className="flex items-center gap-2">
                       <Plane size={14} className="text-blue-500 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-700">{c.destination ?? '—'}</p>
                         {c.departureDate && <p className="text-xs text-gray-400">{formatDate(c.departureDate)} → {formatDate(c.returnDate)}</p>}
                       </div>
-                    </div>
+                    </Link>
                   </td>
                   <td className="px-6 py-4">
-                    <StatusBadge label={CASE_STATUS_LABELS[c.status] ?? c.status} colorClass={CASE_STATUS_COLORS[c.status] ?? 'bg-gray-100 text-gray-600'} />
+                    <Link href={`/cases/${c.id}`}>
+                      <StatusBadge label={CASE_STATUS_LABELS[c.status] ?? c.status} colorClass={CASE_STATUS_COLORS[c.status] ?? 'bg-gray-100 text-gray-600'} />
+                    </Link>
                   </td>
                   <td className="px-6 py-4 hidden lg:table-cell">
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <Link href={`/cases/${c.id}`} className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Users size={12} />{c._count.passengers} pax</span>
                       <span className="flex items-center gap-1"><Plane size={12} />{c._count.services} servizi</span>
                       <span className="flex items-center gap-1"><CheckSquare size={12} />{c._count.checklists} task</span>
-                    </div>
+                    </Link>
                   </td>
                   <td className="px-6 py-4 hidden lg:table-cell text-right">
-                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(Number(c.totalAmount))}</p>
-                    <p className="text-xs text-orange-600">Saldo: {formatCurrency(Number(c.balance))}</p>
+                    <Link href={`/cases/${c.id}`} className="block">
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(Number(c.totalAmount))}</p>
+                      <p className="text-xs text-orange-600">Saldo: {formatCurrency(Number(c.balance))}</p>
+                    </Link>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {data && data.meta.totalPages > 1 && (
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <span>Pagina {data.meta.page} di {data.meta.totalPages}</span>
+            <div className="flex gap-2">
+              <button
+                disabled={!data.meta.hasPrevPage}
+                onClick={() => setPage(p => p - 1)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+              >
+                Precedente
+              </button>
+              <button
+                disabled={!data.meta.hasNextPage}
+                onClick={() => setPage(p => p + 1)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+              >
+                Successiva
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -6,6 +6,7 @@ export interface CurrentUserPayload {
   tenantId: string;
   roles: string[];
   permissions: string[];
+  isSuperAdmin?: boolean;
 }
 
 export const CurrentUser = createParamDecorator(

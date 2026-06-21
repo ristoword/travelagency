@@ -51,7 +51,10 @@ export const useAuthStore = create<AuthState>()(
           set({ user: data.user, isAuthenticated: true, isLoading: false });
         } catch (error) {
           set({ isLoading: false });
-          throw error;
+          const err = error as { response?: { data?: { message?: string | string[] } } };
+          const msg = err.response?.data?.message;
+          const detail = Array.isArray(msg) ? msg.join(', ') : msg;
+          throw new Error(detail || 'Credenziali non valide');
         }
       },
 

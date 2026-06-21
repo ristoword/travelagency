@@ -31,7 +31,9 @@ export default function LoginPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { tenantSlug: 'demo-agenzia' },
+    defaultValues: {
+      tenantSlug: process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG || 'agenzia-principale',
+    },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -113,7 +115,7 @@ export default function LoginPage() {
 
           {/* Bottom stats */}
           <div className="flex gap-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
-            {[['10+', 'Moduli'], ['200+', 'Endpoint API'], ['40+', 'Modelli DB']].map(([n, l]) => (
+            {[['12', 'Moduli'], ['150+', 'Endpoint API'], ['40+', 'Modelli DB']].map(([n, l]) => (
               <div key={l}>
                 <p className="text-2xl font-bold text-white">{n}</p>
                 <p className="text-xs" style={{ color: 'var(--text-3)' }}>{l}</p>
@@ -149,7 +151,7 @@ export default function LoginPage() {
               </label>
               <input
                 {...register('tenantSlug')}
-                placeholder="es: demo-agenzia"
+                placeholder="es: agenzia-principale"
                 className="input-dark w-full"
               />
               {errors.tenantSlug && <p className="text-red-400 text-xs mt-1">{errors.tenantSlug.message}</p>}
@@ -163,7 +165,7 @@ export default function LoginPage() {
               <input
                 {...register('email')}
                 type="email"
-                placeholder="basilepaolo@me.com"
+                placeholder="email@agenzia.it"
                 className="input-dark w-full"
               />
               {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
@@ -173,7 +175,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>Password</label>
-                <button type="button" className="text-xs text-blue-400 hover:text-blue-300">
+                <button type="button" onClick={() => toast('Contatta l\'amministratore per il reset password', { icon: 'ℹ️', duration: 4000 })} className="text-xs text-blue-400 hover:text-blue-300">
                   Password dimenticata?
                 </button>
               </div>
@@ -201,19 +203,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 rounded-xl border" style={{ background: 'rgba(59,130,246,0.06)', borderColor: 'rgba(59,130,246,0.15)' }}>
-            <p className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1.5">
-              <Star size={10} className="fill-current" /> Credenziali demo
-            </p>
-            <div className="space-y-1">
-              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>basilepaolo@me.com</p>
-              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>Bimb@</p>
-              <p className="text-xs" style={{ color: 'var(--text-3)' }}>Codice: demo-agenzia</p>
-            </div>
-          </div>
+          <p className="text-center text-xs mt-6" style={{ color: 'var(--text-3)' }}>
+            <a href="/superadmin/login" className="text-violet-400 hover:text-violet-300">
+              Accesso SuperAdmin →
+            </a>
+          </p>
 
-          <p className="text-center text-xs mt-8" style={{ color: 'var(--text-3)' }}>
+          <p className="text-center text-xs mt-4" style={{ color: 'var(--text-3)' }}>
             Travel Agency Management System &copy; 2025
           </p>
         </div>

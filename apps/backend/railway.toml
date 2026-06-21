@@ -1,6 +1,10 @@
+# Servizio BACKEND su Railway:
+# Settings → Source → Root Directory = apps/backend
+# Settings → Build → Dockerfile path = Dockerfile (default)
+
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "apps/backend/Dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 healthcheckPath = "/health"

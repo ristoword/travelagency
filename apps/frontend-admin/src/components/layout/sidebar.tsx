@@ -138,7 +138,6 @@ export function Sidebar() {
         </div>
         <button className="ml-auto p-1.5 rounded-lg transition-colors hover:bg-[rgba(255,255,255,0.06)] relative">
           <Bell size={14} style={{ color: 'var(--text-2)' }} />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-400 rounded-full" />
         </button>
       </div>
 
