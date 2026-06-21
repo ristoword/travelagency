@@ -17,7 +17,9 @@ RUN npm install --ignore-scripts
 COPY prisma ./prisma
 RUN npx prisma generate
 
-COPY src ./src
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY apps/backend/prisma ./apps/backend/prisma
 
 RUN npm run build \
     && if [ ! -f dist/main.js ]; then echo "ERROR: dist/main.js not found after build"; ls -la dist/ 2>/dev/null || echo "(dist/ does not exist)"; exit 1; fi
