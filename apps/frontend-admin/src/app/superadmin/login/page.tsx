@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function SuperAdminLoginPage() {
-  const [email, setEmail] = useState('basilepaolo@me.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');

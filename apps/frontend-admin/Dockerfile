@@ -13,7 +13,7 @@ RUN pnpm install --filter @travel-agency/frontend-admin --prod=false
 
 # Build-time env vars (baked into the JS bundle — must be provided as ARG/ENV)
 ARG NEXT_PUBLIC_API_URL=http://localhost:3000
-ARG NEXT_PUBLIC_DEFAULT_TENANT_SLUG=demo-agenzia
+ARG NEXT_PUBLIC_DEFAULT_TENANT_SLUG=agenzia-principale
 ARG NEXT_PUBLIC_APP_NAME=Travel Agency Admin
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_DEFAULT_TENANT_SLUG=$NEXT_PUBLIC_DEFAULT_TENANT_SLUG

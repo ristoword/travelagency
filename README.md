@@ -64,7 +64,7 @@ pnpm install
 ```bash
 cd apps/backend
 pnpm prisma:migrate    # Applica migrations
-pnpm prisma:seed       # Popola DB con dati iniziali
+pnpm prisma:seed       # Bootstrap: permessi, superadmin, tenant iniziale (nessun dato demo)
 ```
 
 ### 5. Avvia il backend
@@ -79,15 +79,19 @@ cd apps/backend && pnpm start:dev
 
 Swagger disponibile su: http://localhost:3000/api/docs
 
-## Credenziali Demo (dopo seed)
+## Credenziali (dopo seed — da `.env`)
 
-| Ruolo | Email | Password | Tenant Slug |
-|-------|-------|----------|-------------|
-| Admin | admin@demo-agenzia.it | Admin123! | demo-agenzia |
-| Agente | agente@demo-agenzia.it | Agent123! | demo-agenzia |
+| Ruolo | Dove | Tenant Slug |
+|-------|------|-------------|
+| SuperAdmin | `/superadmin` | `_superadmin` |
+| Admin agenzia | `/login` | `DEV_OWNER_TENANT_SLUG` (default: `agenzia-principale`) |
 
-> Aggiungere l'header `X-Tenant-Slug: demo-agenzia` ad ogni richiesta API,
-> oppure passare `tenantSlug` nel body del login.
+Email e password sono quelle impostate in `.env`:
+
+- `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` → pannello SuperAdmin
+- `DEV_OWNER_EMAIL` / `DEV_OWNER_PASSWORD` → login agenzia (se `DEV_OWNER_ENABLED=true`)
+
+> Header API: `X-Tenant-Slug: <slug>` oppure `tenantSlug` nel body del login.
 
 ## API Endpoints — FASE 1
 

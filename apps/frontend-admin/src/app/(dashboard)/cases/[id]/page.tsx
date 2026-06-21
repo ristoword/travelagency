@@ -21,9 +21,9 @@ interface CaseDetail {
   client?: { id: string; firstName?: string; lastName?: string; companyName?: string; email?: string; phone?: string };
   assignedTo?: { firstName: string; lastName: string; email: string };
   passengers?: Array<{ id: string; firstName: string; lastName: string; isLeader: boolean; passportNumber?: string; passportExpiry?: string; birthDate?: string }>;
-  services?: Array<{ id: string; type: string; description: string; provider?: string; status: string; serviceDate?: string; amount: number; cost: number; numberOfPax?: number; confirmationCode?: string }>;
+  services?: Array<{ id: string; type: string; description: string; provider?: string; status: string; serviceDate?: string; amount: number; cost: number; numberOfPax?: number; providerRef?: string }>;
   itinerary?: Array<{ id: string; dayNumber: number; date: string; title: string; description?: string; location?: string; accommodation?: string }>;
-  checklists?: Array<{ id: string; title: string; isCompleted: boolean; dueDate?: string }>;
+  checklists?: Array<{ id: string; item: string; isCompleted: boolean; dueDate?: string }>;
   notes?: Array<{ id: string; content: string; type: string; isPrivate: boolean; createdAt: string; author?: { firstName: string; lastName: string } }>;
 }
 
@@ -196,7 +196,7 @@ export default function CaseDetailPage() {
                     <td className="px-4 py-3 text-xs whitespace-nowrap">{SERVICE_TYPE_LABELS[s.type] ?? s.type}</td>
                     <td className="px-4 py-3 font-medium text-white max-w-[180px]"><p className="truncate">{s.description}</p></td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-2)' }}>{s.provider ?? '—'}</td>
-                    <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-2)' }}>{s.confirmationCode ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-2)' }}>{s.providerRef ?? '—'}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-2)' }}>{s.serviceDate ? formatDate(s.serviceDate) : '—'}</td>
                     <td className="px-4 py-3 text-xs text-center" style={{ color: 'var(--text-2)' }}>{s.numberOfPax ?? '—'}</td>
                     <td className="px-4 py-3 font-semibold text-white text-right">{formatCurrency(Number(s.amount))}</td>
@@ -261,7 +261,7 @@ export default function CaseDetailPage() {
                       {item.isCompleted && <span className="text-white text-[9px]">✓</span>}
                     </div>
                     <span className={item.isCompleted ? 'line-through' : 'text-white'} style={item.isCompleted ? { color: 'var(--text-3)' } : {}}>
-                      {item.title}
+                      {item.item}
                     </span>
                     {item.dueDate && <span className="ml-auto text-[10px] flex-shrink-0" style={{ color: 'var(--text-3)' }}><Clock size={9} className="inline mr-0.5" />{formatDate(item.dueDate)}</span>}
                   </div>

@@ -29,7 +29,7 @@ RUN npm run build \
 
 EXPOSE 3000
 
-# RUN_SEED=true forces demo data seeding even if tenant already exists.
+# RUN_SEED=true forza il bootstrap anche se il tenant agenzia esiste già.
 ENV RUN_SEED=true
 
 # Startup:

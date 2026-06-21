@@ -70,7 +70,7 @@ async function bootstrap() {
       `**Gestionale enterprise per agenzie di viaggio**\n\n` +
       `Fasi implementate: Foundation · CRM · Sales · Cases · Bookings · Accounting · Documents · Suppliers · Communications\n\n` +
       `**Autenticazione:** Bearer JWT — usa /api/v1/auth/login per ottenere il token\n\n` +
-      `**Tenant header:** X-Tenant-Slug: demo-agenzia`,
+      `**Tenant header:** X-Tenant-Slug: <slug-agenzia> (es. agenzia-principale o _superadmin)`,
     )
     .setVersion('1.0')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
