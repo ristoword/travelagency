@@ -140,18 +140,9 @@ export async function ensureSuperAdmin(prisma: PrismaClient) {
   return { tenant, user, email };
 }
 
-async function seedPermissions(prisma: PrismaClient) {
-  await prisma.permission.createMany({ data: PERMISSIONS, skipDuplicates: true });
-  return prisma.permission.findMany();
-}
-
-async function createOwnerTenant(prisma: PrismaClient, allPerms: { id: string }[]) {
+async function ensureOwnerTenant(prisma: PrismaClient, allPerms: { id: string }[]) {
   ensureEnv();
-  const enabled = envFlag('DEV_OWNER_ENABLED');
-  const isProd = process.env.NODE_ENV === 'production';
-  const allowInProd = envFlag('DEV_OWNER_ALLOW_IN_PRODUCTION');
-
-  if (!enabled || (isProd && !allowInProd)) return null;
+  if (!envFlag('DEV_OWNER_ENABLED')) return null;
 
   const email = requireEnv('DEV_OWNER_EMAIL');
   const password = requireEnv('DEV_OWNER_PASSWORD');
@@ -160,7 +151,7 @@ async function createOwnerTenant(prisma: PrismaClient, allPerms: { id: string }[
 
   const tenant = await prisma.tenant.upsert({
     where: { slug },
-    update: {},
+    update: { isActive: true, isVerified: true },
     create: {
       name,
       slug,
@@ -220,7 +211,13 @@ async function createOwnerTenant(prisma: PrismaClient, allPerms: { id: string }[
   const hashed = await hashPassword(password);
   const adminUser = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: tenant.id, email: email.toLowerCase() } },
-    update: { password: hashed, status: UserStatus.ACTIVE, isEmailVerified: true },
+    update: {
+      password: hashed,
+      status: UserStatus.ACTIVE,
+      isEmailVerified: true,
+      firstName: process.env.DEV_OWNER_FIRST_NAME?.trim() || 'Admin',
+      lastName: process.env.DEV_OWNER_LAST_NAME?.trim() || 'Agenzia',
+    },
     create: {
       tenantId: tenant.id,
       email: email.toLowerCase(),
@@ -246,19 +243,31 @@ async function createOwnerTenant(prisma: PrismaClient, allPerms: { id: string }[
     });
   }
 
+  // Compat: aggiorna password anche su vecchio tenant demo-agenzia se presente
+  const legacy = await prisma.tenant.findUnique({ where: { slug: 'demo-agenzia' } });
+  if (legacy) {
+    await prisma.user.updateMany({
+      where: { tenantId: legacy.id, email: email.toLowerCase() },
+      data: { password: hashed, status: UserStatus.ACTIVE, isEmailVerified: true },
+    });
+  }
+
   return { tenant, adminUser, email, slug };
 }
 
-export async function bootstrapDatabase(prisma: PrismaClient, options: { full?: boolean } = {}) {
+export async function ensurePermissions(prisma: PrismaClient) {
+  await prisma.permission.createMany({ data: PERMISSIONS, skipDuplicates: true });
+  return prisma.permission.findMany();
+}
+
+export async function bootstrapDatabase(prisma: PrismaClient) {
   const sa = await ensureSuperAdmin(prisma);
   console.log(`   ✓ SuperAdmin: ${sa.email} (tenant: _superadmin)`);
 
-  if (!options.full) return { superAdmin: sa };
-
-  const allPerms = await seedPermissions(prisma);
+  const allPerms = await ensurePermissions(prisma);
   console.log(`   ✓ ${allPerms.length} permissions`);
 
-  const owner = await createOwnerTenant(prisma, allPerms);
+  const owner = await ensureOwnerTenant(prisma, allPerms);
   if (owner) {
     console.log(`   ✓ Tenant: ${owner.slug} — admin ${owner.email}`);
   } else {

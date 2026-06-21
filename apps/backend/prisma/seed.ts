@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('\n🌱 Bootstrap database (dati reali, nessun mock)...\n');
-  await bootstrapDatabase(prisma, { full: true });
+  await bootstrapDatabase(prisma);
   console.log('\n✅ Seed completato.\n');
 }
 

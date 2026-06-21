@@ -31,7 +31,9 @@ export default function LoginPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { tenantSlug: '' },
+    defaultValues: {
+      tenantSlug: process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG || 'agenzia-principale',
+    },
   });
 
   const onSubmit = async (data: FormData) => {

@@ -89,7 +89,9 @@ Swagger disponibile su: http://localhost:3000/api/docs
 Email e password sono quelle impostate in `.env`:
 
 - `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` → pannello SuperAdmin
-- `DEV_OWNER_EMAIL` / `DEV_OWNER_PASSWORD` → login agenzia (se `DEV_OWNER_ENABLED=true`)
+- `DEV_OWNER_EMAIL` / `DEV_OWNER_PASSWORD` / `DEV_OWNER_TENANT_SLUG` → login agenzia (se `DEV_OWNER_ENABLED=true`)
+
+Su Railway il bootstrap **sincronizza le password ad ogni deploy** — assicurati che tutte le variabili sopra siano impostate nel servizio backend.
 
 > Header API: `X-Tenant-Slug: <slug>` oppure `tenantSlug` nel body del login.
 
