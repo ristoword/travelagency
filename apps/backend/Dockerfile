@@ -7,21 +7,21 @@ RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 # Copy backend config files first (for install layer caching)
-COPY apps/backend/package.json        ./package.json
-COPY apps/backend/tsconfig.json       ./tsconfig.json
-COPY apps/backend/tsconfig.build.json ./tsconfig.build.json
-COPY apps/backend/nest-cli.json       ./nest-cli.json
+COPY package.json        ./package.json
+COPY tsconfig.json       ./tsconfig.json
+COPY tsconfig.build.json ./tsconfig.build.json
+COPY nest-cli.json       ./nest-cli.json
 
 # Install all deps with npm (no lockfile needed, no workspace)
 RUN npm install --ignore-scripts
 
 # Copy prisma schema and generate client BEFORE copying all source
 # This ensures the generated Prisma types are available for tsc
-COPY apps/backend/prisma ./prisma
+COPY prisma ./prisma
 RUN npx prisma generate
 
 # Copy backend source
-COPY apps/backend/src ./src
+COPY src ./src
 
 # Build TypeScript and verify output
 RUN npm run build \
