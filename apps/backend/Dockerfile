@@ -1,31 +1,40 @@
-# Railway: Root Directory del servizio = apps/backend (Settings → Source)
-# Build context = questa cartella → path relativi, NON apps/backend/...
+# Dockerfile for apps/backend - multi-stage build for monorepo
 
-FROM node:20-alpine
-
-RUN apk add --no-cache openssl libc6-compat
-
+# ---- builder ----
+FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl libc6-compat python3 make g++
 WORKDIR /app
 
-COPY package.json        ./package.json
-COPY tsconfig.json       ./tsconfig.json
-COPY tsconfig.build.json ./tsconfig.build.json
-COPY nest-cli.json       ./nest-cli.json
+# Enable corepack and activate pnpm version declared in repository
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
-RUN npm install --ignore-scripts
-
+# Copy root manifest and lockfile (if present)
+COPY package.json pnpm-lock.yaml* ./
+# Copy backend package and source
+COPY apps/backend/package.json apps/backend/
+COPY apps/backend ./apps/backend
+# If you use a top-level prisma schema folder
 COPY prisma ./prisma
-RUN npx prisma generate
 
-COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY apps/backend/prisma ./apps/backend/prisma
+# Install dependencies using pnpm
+RUN pnpm install --frozen-lockfile --reporter=silent || pnpm install --reporter=silent
 
-RUN npm run build \
-    && if [ ! -f dist/main.js ]; then echo "ERROR: dist/main.js not found after build"; ls -la dist/ 2>/dev/null || echo "(dist/ does not exist)"; exit 1; fi
+# Generate Prisma client and build the backend
+RUN pnpm --filter @travel-agency/backend run prisma:generate
+RUN pnpm --filter @travel-agency/backend run build
 
+# ---- runtime ----
+FROM node:20-alpine AS runtime
+RUN apk add --no-cache openssl libc6-compat
+WORKDIR /app
+
+# Copy build artifacts and production node_modules from builder
+COPY --from=builder /app/apps/backend/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/backend/prisma ./prisma
+
+ENV NODE_ENV=production
 EXPOSE 3000
 
-ENV RUN_SEED=true
-
+# At runtime apply prisma push and run seed then start the app
 CMD ["sh", "-c", "npx prisma db push && node dist/database/seed-runner.js && node dist/main"]
