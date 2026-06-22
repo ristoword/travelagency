@@ -26,10 +26,10 @@ RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 # Copy only the necessary artifacts from builder
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/apps/backend/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 # copy prisma client if present
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/apps/backend/prisma ./prisma
 
 ENV NODE_ENV=production
 EXPOSE 3000
